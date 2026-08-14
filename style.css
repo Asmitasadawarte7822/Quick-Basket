@@ -983,3 +983,22 @@ body {
     }
 }
 
+
+
+.btn-view {
+    display: block;
+    text-align: center;
+    background: #2874f0;
+    color: #fff;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+    text-decoration: none;
+}
+.btn-view:hover {
+    background: #0052cc;
+}
+
+
+
+

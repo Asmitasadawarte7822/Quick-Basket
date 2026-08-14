@@ -1,10 +1,12 @@
+
+
 <?php
 session_start();
-require_once 'config.php'; // adjust path if needed
+require_once 'config.php';
 
+// ---------- USER LOGIN ----------
 $user_name = null;
 $is_logged_in = false;
-
 if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
     $sql = "SELECT name FROM users WHERE id = ?";
@@ -18,70 +20,88 @@ if (isset($_SESSION['user_id'])) {
     }
     mysqli_stmt_close($stmt);
 }
-mysqli_close($conn);
+
+// ---------- FETCH PRODUCTS (FIXED) ----------
+$product_sql = "SELECT p.*, s.store_name 
+                FROM products p 
+                LEFT JOIN sellers s ON p.seller_id = s.id 
+                WHERE p.status = 'active' 
+                ORDER BY p.id DESC 
+                LIMIT 8";
+$product_result = mysqli_query($conn, $product_sql);
+
+// If query fails, set an empty result set to avoid errors
+if (!$product_result) {
+    $product_result = null;
+}
+
+// ---------- CART COUNT ----------
+$cart_count = 0;
+if (isset($_SESSION['cart'])) {
+    $cart_count = array_sum($_SESSION['cart']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quick Basket</title>
-
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* Additional button style */
+        .add-to-cart-btn {
+            width: 100%;
+            border: none;
+            background: #2874f0;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .add-to-cart-btn:hover {
+            background: #0052cc;
+        }
+        .add-to-cart-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
-
 <body>
 
-    <!-- Header -->
+    <!-- ======== HEADER ======== -->
     <header class="top-header">
-
         <div class="logo">
             <h1>Quick<span>Basket</span></h1>
         </div>
-
         <div class="search-box">
             <input type="text" placeholder="Search for Products, Brands and More">
             <button>SEARCH</button>
         </div>
-
         <div class="header-icons">
-
             <?php if ($is_logged_in): ?>
-                <!-- Logged in: show user name + logout -->
-                <a href="dashboard.php" style="display:flex; align-items:center; gap:6px;">
-                    <i class="fa-regular fa-user"></i>
-                    <?php echo $user_name; ?> 
+                <a href="logout.php" style="display:flex; align-items:center; gap:6px;">
+                    <i class="fa-regular fa-user"></i> <?php echo $user_name; ?>
                 </a>
             <?php else: ?>
-                <!-- Not logged in: show Login link -->
-                <a href="login.php">
-                    <i class="fa-regular fa-user"></i>
-                    Login
-                </a>
+                <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
             <?php endif; ?>
-
-            <a href="wishlist.php">
-                <i class="fa-regular fa-heart"></i>
-                Wishlist
-            </a>
-
+            <a href="wishlist.php"><i class="fa-regular fa-heart"></i> Wishlist</a>
             <a href="cart.php">
-                <i class="fa-solid fa-cart-shopping"></i>
-                Cart
+                <i class="fa-solid fa-cart-shopping"></i> Cart
                 <span style="background:#ff3b30; color:#fff; border-radius:50%; padding:3px 7px; font-size:11px; margin-left:4px;">
-                    <!-- you can add cart count here -->
+                    <?php echo $cart_count; ?>
                 </span>
             </a>
-
         </div>
-
     </header>
 
-    <!-- ========== The rest of your page (unchanged) ========== -->
-
-    <!-- Categories Menu -->
+    <!-- ======== CATEGORIES MENU ======== -->
     <section class="categories-menu">
         <div class="category-item"><i class="fa-solid fa-bars"></i><span>All Categories</span></div>
         <div class="category-item"><i class="fa-solid fa-laptop"></i><span>Electronics</span></div>
@@ -94,7 +114,7 @@ mysqli_close($conn);
         <div class="category-item"><i class="fa-solid fa-book"></i><span>Books</span></div>
     </section>
 
-    <!-- Hero Banner -->
+    <!-- ======== HERO BANNER ======== -->
     <section class="hero-banner">
         <button class="slider-btn left-btn"><i class="fa-solid fa-chevron-left"></i></button>
         <div class="hero-content">
@@ -106,16 +126,16 @@ mysqli_close($conn);
                 <a href="#" class="shop-now-btn">SHOP NOW</a>
             </div>
             <div class="hero-image">
-                <img src="images/mobile.png" alt="Mobile">
-                <img src="images/laptop.png" alt="Laptop">
-                <img src="images/watch.png" alt="Watch">
-                <img src="images/shoes.png" alt="Shoes">
+                <img src="admin/mobile.jpg" alt="Mobile">
+                <img src="admin/Laptop.png"width="200" height="200"  alt="Laptop">
+                <img src="admin/Watch.jfif" alt="Watch">
+                <img src="admin/Shoes.jfif" alt="Shoes">
             </div>
         </div>
         <button class="slider-btn right-btn"><i class="fa-solid fa-chevron-right"></i></button>
     </section>
 
-    <!-- Top Categories -->
+    <!-- ======== TOP CATEGORIES (static) ======== -->
     <section class="top-categories">
         <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-mobile-screen"></i></div><h4>Mobiles</h4></div>
         <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-laptop"></i></div><h4>Laptops</h4></div>
@@ -127,60 +147,60 @@ mysqli_close($conn);
         <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-gem"></i></div><h4>Jewellery</h4></div>
     </section>
 
-    <!-- Featured Products -->
+    <!-- ======== FEATURED PRODUCTS (DYNAMIC) ======== -->
     <section class="featured-products">
-        <div class="section-heading"><h2>Featured Products</h2><a href="checkout.php">View All</a></div>
+        <div class="section-heading">
+            <h2>Featured Products</h2>
+            <a href="products.php">View All</a>
+        </div>
         <div class="products-grid">
-            <!-- Product 1 -->
-            <div class="product-card">
-                <span class="discount-badge">20% OFF</span>
-                <img src="images/headphone.png" alt="Headphone">
-                <div class="product-info">
-                    <h3>Wireless Headphones</h3>
-                    <div class="rating">★★★★★</div>
-                    <div class="price"><span class="new-price">₹1,999</span><span class="old-price">₹2,499</span></div>
-                    <button>Add To Cart</button>
-                </div>
-            </div>
-            <!-- Product 2 -->
-            <div class="product-card">
-                <span class="discount-badge">30% OFF</span>
-                <img src="images/watch.png" alt="Watch">
-                <div class="product-info">
-                    <h3>Smart Watch</h3>
-                    <div class="rating">★★★★★</div>
-                    <div class="price"><span class="new-price">₹2,499</span><span class="old-price">₹3,499</span></div>
-                    <button>Add To Cart</button>
-                </div>
-            </div>
-            <!-- Product 3 -->
-            <div class="product-card">
-                <span class="discount-badge">15% OFF</span>
-                <img src="images/shoes.png" alt="Shoes">
-                <div class="product-info">
-                    <h3>Sports Shoes</h3>
-                    <div class="rating">★★★★★</div>
-                    <div class="price"><span class="new-price">₹1,799</span><span class="old-price">₹2,199</span></div>
-                    <button>Add To Cart</button>
-                </div>
-            </div>
-            <!-- Product 4 -->
-            <div class="product-card">
-                <span class="discount-badge">25% OFF</span>
-                <img src="images/laptop.png" alt="Laptop">
-                <div class="product-info">
-                    <h3>Gaming Laptop</h3>
-                    <div class="rating">★★★★★</div>
-                    <div class="price"><span class="new-price">₹59,999</span><span class="old-price">₹79,999</span></div>
-                    <button>Add To Cart</button>
-                </div>
-            </div>
+            <?php if ($product_result && mysqli_num_rows($product_result) > 0): ?>
+                <?php while ($product = mysqli_fetch_assoc($product_result)): ?>
+                    <div class="product-card">
+                        <?php if ($product['stock'] > 0): ?>
+                            <span class="discount-badge">In Stock</span>
+                        <?php else: ?>
+                            <span class="discount-badge" style="background:#e74c3c;">Out of Stock</span>
+                        <?php endif; ?>
+                        <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                        <div class="product-info">
+                            <h3><?php echo htmlspecialchars($product['name']); ?></h3>
+                            <div class="rating">★★★★★</div>
+                            <div class="price">
+                                <span class="new-price">₹<?php echo number_format($product['price'], 2); ?></span>
+                                <?php if ($product['price'] > 1000): ?>
+                                    <span class="old-price">₹<?php echo number_format($product['price'] * 1.2, 2); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <small style="color:#888;">by <?php echo htmlspecialchars($product['store_name'] ?? 'Quick Basket'); ?></small>
+
+                            <!-- ADD TO CART FORM -->
+                            <form action="add-to-cart.php" method="POST" style="margin-top:10px;">
+                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="add-to-cart-btn" <?php echo ($product['stock'] <= 0) ? 'disabled' : ''; ?>>
+                                    <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                                </button>
+                            </form>
+
+                            <a href="product-details.php?id=<?php echo $product['id']; ?>" class="btn-view" style="display:block; text-align:center; background:#f0f0f0; color:#333; padding:8px; border-radius:6px; margin-top:5px; text-decoration:none; font-size:13px;">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <p style="grid-column:1/-1; text-align:center; color:#888; padding:40px;">No products available at the moment.</p>
+            <?php endif; ?>
         </div>
     </section>
 
-    <!-- Best Deals -->
+    <!-- ======== BEST DEALS ======== -->
     <section class="best-deals">
-        <div class="section-heading"><h2>Best Deals For You</h2><a href="#">View All</a></div>
+        <div class="section-heading">
+            <h2>Best Deals For You</h2>
+            <a href="#">View All</a>
+        </div>
         <div class="deals-container">
             <div class="deal-card deal-blue">
                 <div class="deal-content"><h3>Smartphones</h3><p>Up To 40% OFF</p><a href="product-details.php">Shop Now</a></div>
@@ -197,7 +217,7 @@ mysqli_close($conn);
         </div>
     </section>
 
-    <!-- Why Choose Us -->
+    <!-- ======== WHY CHOOSE US ======== -->
     <section class="why-choose">
         <div class="section-heading center-heading"><h2>Why Choose Quick Basket?</h2><p>We provide the best online shopping experience.</p></div>
         <div class="features-container">
@@ -208,32 +228,17 @@ mysqli_close($conn);
         </div>
     </section>
 
-    <!-- Testimonials -->
+    <!-- ======== TESTIMONIALS ======== -->
     <section class="testimonials">
         <div class="section-heading center-heading"><h2>What Our Customers Say</h2><p>Trusted by thousands of happy shoppers.</p></div>
         <div class="testimonial-container">
-            <div class="testimonial-card">
-                <img src="images/user1.jpg" alt="Customer">
-                <h3>Rahul Sharma</h3>
-                <div class="stars">★★★★★</div>
-                <p>Amazing shopping experience. Fast delivery and excellent product quality.</p>
-            </div>
-            <div class="testimonial-card">
-                <img src="images/user2.jpg" alt="Customer">
-                <h3>Priya Patel</h3>
-                <div class="stars">★★★★★</div>
-                <p>Great offers and secure payment system. Highly recommended.</p>
-            </div>
-            <div class="testimonial-card">
-                <img src="images/user3.jpg" alt="Customer">
-                <h3>Amit Verma</h3>
-                <div class="stars">★★★★★</div>
-                <p>Best online shopping platform with excellent customer support.</p>
-            </div>
+            <div class="testimonial-card"><img src="images/user1.jpg" alt="Customer"><h3>Rahul Sharma</h3><div class="stars">★★★★★</div><p>Amazing shopping experience. Fast delivery and excellent product quality.</p></div>
+            <div class="testimonial-card"><img src="images/user2.jpg" alt="Customer"><h3>Priya Patel</h3><div class="stars">★★★★★</div><p>Great offers and secure payment system. Highly recommended.</p></div>
+            <div class="testimonial-card"><img src="images/user3.jpg" alt="Customer"><h3>Amit Verma</h3><div class="stars">★★★★★</div><p>Best online shopping platform with excellent customer support.</p></div>
         </div>
     </section>
 
-    <!-- Newsletter -->
+    <!-- ======== NEWSLETTER ======== -->
     <section class="newsletter">
         <div class="newsletter-content">
             <h2>Subscribe To Our Newsletter</h2>
@@ -245,7 +250,7 @@ mysqli_close($conn);
         </div>
     </section>
 
-    <!-- Footer -->
+    <!-- ======== FOOTER ======== -->
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-box">
@@ -284,6 +289,21 @@ mysqli_close($conn);
             <p>© 2026 Quick Basket. All Rights Reserved.</p>
         </div>
     </footer>
+
+
+    <nav class="category-nav">
+    <div class="category-nav-inner">
+        <a href="index.php" class="active">All Categories</a>
+        <a href="category-products.php?slug=electronics"><i class="fa-solid fa-laptop"></i> Electronics</a>
+        <a href="category-products.php?slug=fashion"><i class="fa-solid fa-shirt"></i> Fashion</a>
+        <a href="category-products.php?slug=mobiles"><i class="fa-solid fa-mobile-screen"></i> Mobiles</a>
+        <a href="category-products.php?slug=home"><i class="fa-solid fa-house"></i> Home</a>
+        <a href="category-products.php?slug=beauty"><i class="fa-solid fa-wand-magic-sparkles"></i> Beauty</a>
+        <a href="category-products.php?slug=appliances"><i class="fa-solid fa-blender"></i> Appliances</a>
+        <a href="category-products.php?slug=sports"><i class="fa-solid fa-football"></i> Sports</a>
+        <a href="category-products.php?slug=books"><i class="fa-solid fa-book"></i> Books</a>
+    </div>
+</nav>
 
 </body>
 </html>

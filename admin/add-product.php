@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,20 +60,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #fff;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
         }
-        .form-wrap h2 { margin-bottom: 25px; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-weight: 600; margin-bottom: 5px; }
-        .form-group input, .form-group textarea, .form-group select {
+
+        .form-wrap h2 {
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 15px;
         }
-        .form-group textarea { height: 100px; resize: vertical; }
-        .form-group input:focus, .form-group select:focus { border-color: #2874f0; outline: none; }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #2874f0;
+            outline: none;
+        }
+
         .btn-submit {
             background: #2874f0;
             color: #fff;
@@ -82,11 +107,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
             font-weight: 600;
         }
-        .btn-submit:hover { background: #0052cc; }
-        .back-link { display: block; margin-top: 15px; color: #2874f0; text-decoration: none; }
-        .alert-error { background: #fadbd8; color: #e74c3c; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+
+        .btn-submit:hover {
+            background: #0052cc;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 15px;
+            color: #2874f0;
+            text-decoration: none;
+        }
+
+        .alert-error {
+            background: #fadbd8;
+            color: #e74c3c;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
+
 <body>
     <div class="form-wrap">
         <h2><i class="fa-solid fa-plus"></i> Add Product</h2>
@@ -121,7 +163,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <select id="category_id" name="category_id">
                     <option value="0">None</option>
                     <?php foreach ($categories as $cat): ?>
-                        <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                        <option value="<?php echo $cat['id']; ?>" <?php echo (isset($_POST['category_id']) && $_POST['category_id'] == $cat['id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($cat['name']); ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -146,4 +190,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <a href="products.php" class="back-link">← Back to Products</a>
     </div>
 </body>
+
 </html>

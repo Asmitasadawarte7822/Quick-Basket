@@ -76,5 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <a href="categories.php" class="back-link">← Back to Categories</a>
     </div>
+
+// After getting $name 
+$slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $name)));
+$sql = "INSERT INTO product_categories (name, slug) VALUES ('$name', '$slug')";
 </body>
 </html>
