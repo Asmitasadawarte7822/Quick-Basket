@@ -7,10 +7,9 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-$current_page = 'orders';
+$current_page = 'users';
 
-// ---------- FILTERS & SEARCH ----------
-$status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
+// ---------- SEARCH & PAGINATION ----------
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = 10;
@@ -21,26 +20,17 @@ $where = "WHERE 1=1";
 $params = [];
 $types = "";
 
-if (!empty($status_filter)) {
-    $where .= " AND o.status = ?";
-    $params[] = $status_filter;
-    $types .= "s";
-}
-
 if (!empty($search)) {
     $search_param = "%$search%";
-    $where .= " AND (o.order_number LIKE ? OR u.name LIKE ? OR u.email LIKE ?)";
+    $where .= " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
     $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
     $types .= "sss";
 }
 
-// Count total orders
-$count_sql = "SELECT COUNT(*) AS total 
-              FROM orders o 
-              LEFT JOIN users u ON o.user_id = u.id 
-              $where";
+// Count total users
+$count_sql = "SELECT COUNT(*) AS total FROM users $where";
 $stmt = mysqli_prepare($conn, $count_sql);
 if (!empty($params)) {
     mysqli_stmt_bind_param($stmt, $types, ...$params);
@@ -48,16 +38,11 @@ if (!empty($params)) {
 mysqli_stmt_execute($stmt);
 $count_result = mysqli_stmt_get_result($stmt);
 $total_row = mysqli_fetch_assoc($count_result);
-$total_orders = $total_row['total'];
-$total_pages = ceil($total_orders / $limit);
+$total_users = $total_row['total'];
+$total_pages = ceil($total_users / $limit);
 
-// Fetch orders
-$sql = "SELECT o.*, u.name AS customer_name, u.email AS customer_email 
-        FROM orders o 
-        LEFT JOIN users u ON o.user_id = u.id 
-        $where 
-        ORDER BY o.id DESC 
-        LIMIT ? OFFSET ?";
+// Fetch users
+$sql = "SELECT id, name, email, phone, status, role, created_at FROM users $where ORDER BY id DESC LIMIT ? OFFSET ?";
 $stmt = mysqli_prepare($conn, $sql);
 if (!empty($params)) {
     $params[] = $limit;
@@ -70,51 +55,32 @@ if (!empty($params)) {
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 
-// ---------- STATS ----------
-$stats_sql = "SELECT 
-                COUNT(*) AS total,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-                SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed,
-                SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing,
-                SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) AS shipped,
-                SUM(CASE WHEN status = 'ontheway' THEN 1 ELSE 0 END) AS ontheway,
-                SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
-                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
-                SUM(CASE WHEN status = 'refunded' THEN 1 ELSE 0 END) AS refunded
-              FROM orders";
-$stats_result = mysqli_query($conn, $stats_sql);
-$stats = mysqli_fetch_assoc($stats_result);
-
 // ---------- MESSAGE HANDLING ----------
 $message = '';
 $message_type = '';
+if (isset($_GET['deleted'])) {
+    $message = 'User deleted successfully!';
+    $message_type = 'success';
+}
 if (isset($_GET['updated'])) {
-    $message = 'Order status updated successfully!';
+    $message = 'User updated successfully!';
+    $message_type = 'success';
+}
+if (isset($_GET['added'])) {
+    $message = 'User added successfully!';
     $message_type = 'success';
 }
 if (isset($_GET['error'])) {
     $message = 'Something went wrong. Please try again.';
     $message_type = 'error';
 }
-
-// Status color mapping
-$status_colors = [
-    'pending' => '#f39c12',
-    'confirmed' => '#3498db',
-    'processing' => '#9b59b6',
-    'shipped' => '#1abc9c',
-    'ontheway' => '#2ecc71',
-    'delivered' => '#27ae60',
-    'cancelled' => '#e74c3c',
-    'refunded' => '#95a5a6'
-];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Orders - Admin</title>
+    <title>Manage Users - Admin</title>
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -213,6 +179,20 @@ $status_colors = [
             align-items: center;
             flex-wrap: wrap;
         }
+        .btn-add {
+            background: #27ae60;
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .btn-add:hover {
+            background: #219a52;
+            transform: scale(1.02);
+        }
         .search-form {
             display: flex;
             gap: 8px;
@@ -222,7 +202,7 @@ $status_colors = [
             padding: 8px 14px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            width: 200px;
+            width: 220px;
             font-size: 14px;
             outline: none;
             transition: 0.3s;
@@ -230,16 +210,6 @@ $status_colors = [
         .search-form input:focus {
             border-color: #2874f0;
             box-shadow: 0 0 0 3px rgba(40,116,240,0.1);
-        }
-        .search-form select {
-            padding: 8px 14px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-        }
-        .search-form select:focus {
-            border-color: #2874f0;
         }
         .search-form button {
             padding: 8px 18px;
@@ -265,40 +235,6 @@ $status_colors = [
         .btn-clear:hover {
             background: #c0392b !important;
         }
-
-        /* ---------- Stats Row ---------- */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .stat-box {
-            background: #fff;
-            padding: 12px 16px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            text-align: center;
-            border-left: 4px solid #2874f0;
-        }
-        .stat-box .number {
-            font-size: 22px;
-            font-weight: 700;
-            color: #222;
-        }
-        .stat-box .label {
-            font-size: 11px;
-            color: #888;
-            text-transform: uppercase;
-        }
-        .stat-box.pending { border-left-color: #f39c12; }
-        .stat-box.confirmed { border-left-color: #3498db; }
-        .stat-box.processing { border-left-color: #9b59b6; }
-        .stat-box.shipped { border-left-color: #1abc9c; }
-        .stat-box.ontheway { border-left-color: #2ecc71; }
-        .stat-box.delivered { border-left-color: #27ae60; }
-        .stat-box.cancelled { border-left-color: #e74c3c; }
-        .stat-box.refunded { border-left-color: #95a5a6; }
 
         /* ---------- Alerts ---------- */
         .alert {
@@ -347,18 +283,55 @@ $status_colors = [
             background: #f8f9ff;
         }
 
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #2874f0;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
         .status-badge {
             padding: 4px 14px;
             border-radius: 30px;
             font-size: 12px;
             font-weight: 600;
-            color: #fff;
             display: inline-block;
         }
-        .order-total {
-            font-weight: 700;
-            color: #2874f0;
+        .status-active {
+            background: #d5f5e3;
+            color: #27ae60;
         }
+        .status-inactive {
+            background: #fdebd0;
+            color: #e67e22;
+        }
+        .status-suspended {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .role-admin {
+            background: #2874f0;
+            color: #fff;
+        }
+        .role-user {
+            background: #eef2f7;
+            color: #555;
+        }
+
         .action-btn {
             padding: 5px 10px;
             border-radius: 4px;
@@ -368,11 +341,11 @@ $status_colors = [
             display: inline-block;
             transition: 0.3s;
         }
-        .action-btn.view {
+        .action-btn.edit {
             background: #2874f0;
             color: #fff;
         }
-        .action-btn.view:hover {
+        .action-btn.edit:hover {
             background: #0052cc;
         }
         .action-btn.delete {
@@ -420,30 +393,6 @@ $status_colors = [
             background: #eee;
         }
 
-        /* ---------- Quick Status Update (inline) ---------- */
-        .status-form {
-            display: inline-block;
-        }
-        .status-form select {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
-            background: #fff;
-        }
-        .status-form button {
-            padding: 4px 10px;
-            border: none;
-            border-radius: 4px;
-            background: #2874f0;
-            color: #fff;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        .status-form button:hover {
-            background: #0052cc;
-        }
-
         /* ---------- Responsive ---------- */
         @media (max-width: 768px) {
             .admin-layout { flex-direction: column; }
@@ -451,15 +400,13 @@ $status_colors = [
             .admin-topbar { flex-direction: column; align-items: stretch; text-align: center; }
             .right-actions { flex-direction: column; align-items: stretch; }
             .search-form { flex-wrap: wrap; }
-            .search-form input,
-            .search-form select { width: 100%; }
+            .search-form input { width: 100%; }
             .admin-main { padding: 15px; }
-            .stats-row { grid-template-columns: repeat(4, 1fr); }
         }
         @media (max-width: 576px) {
             .admin-topbar h1 { font-size: 20px; }
             th, td { padding: 8px 10px; font-size: 13px; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .user-avatar { width: 32px; height: 32px; font-size: 13px; }
         }
     </style>
 </head>
@@ -496,40 +443,19 @@ $status_colors = [
     <!-- Main Content -->
     <main class="admin-main">
         <div class="admin-topbar">
-            <h1><i class="fa-solid fa-box"></i> Manage Orders</h1>
+            <h1><i class="fa-solid fa-users"></i> Manage Users</h1>
             <div class="right-actions">
+                <a href="add-user.php" class="btn-add">
+                    <i class="fa-solid fa-plus"></i> Add User
+                </a>
                 <form method="GET" class="search-form">
-                    <select name="status">
-                        <option value="">All Status</option>
-                        <option value="pending" <?php echo ($status_filter == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                        <option value="confirmed" <?php echo ($status_filter == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                        <option value="processing" <?php echo ($status_filter == 'processing') ? 'selected' : ''; ?>>Processing</option>
-                        <option value="shipped" <?php echo ($status_filter == 'shipped') ? 'selected' : ''; ?>>Shipped</option>
-                        <option value="ontheway" <?php echo ($status_filter == 'ontheway') ? 'selected' : ''; ?>>On the Way</option>
-                        <option value="delivered" <?php echo ($status_filter == 'delivered') ? 'selected' : ''; ?>>Delivered</option>
-                        <option value="cancelled" <?php echo ($status_filter == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                        <option value="refunded" <?php echo ($status_filter == 'refunded') ? 'selected' : ''; ?>>Refunded</option>
-                    </select>
-                    <input type="text" name="search" placeholder="Search by order #, customer..." value="<?php echo htmlspecialchars($search); ?>">
+                    <input type="text" name="search" placeholder="Search by name, email or phone..." value="<?php echo htmlspecialchars($search); ?>">
                     <button type="submit"><i class="fa-solid fa-search"></i></button>
-                    <?php if (!empty($status_filter) || !empty($search)): ?>
-                        <a href="orders.php" class="btn-clear">Clear</a>
+                    <?php if (!empty($search)): ?>
+                        <a href="users.php" class="btn-clear">Clear</a>
                     <?php endif; ?>
                 </form>
             </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-row">
-            <div class="stat-box"><div class="number"><?php echo $stats['total'] ?? 0; ?></div><div class="label">Total</div></div>
-            <div class="stat-box pending"><div class="number"><?php echo $stats['pending'] ?? 0; ?></div><div class="label">Pending</div></div>
-            <div class="stat-box confirmed"><div class="number"><?php echo $stats['confirmed'] ?? 0; ?></div><div class="label">Confirmed</div></div>
-            <div class="stat-box processing"><div class="number"><?php echo $stats['processing'] ?? 0; ?></div><div class="label">Processing</div></div>
-            <div class="stat-box shipped"><div class="number"><?php echo $stats['shipped'] ?? 0; ?></div><div class="label">Shipped</div></div>
-            <div class="stat-box ontheway"><div class="number"><?php echo $stats['ontheway'] ?? 0; ?></div><div class="label">On Way</div></div>
-            <div class="stat-box delivered"><div class="number"><?php echo $stats['delivered'] ?? 0; ?></div><div class="label">Delivered</div></div>
-            <div class="stat-box cancelled"><div class="number"><?php echo $stats['cancelled'] ?? 0; ?></div><div class="label">Cancelled</div></div>
-            <div class="stat-box refunded"><div class="number"><?php echo $stats['refunded'] ?? 0; ?></div><div class="label">Refunded</div></div>
         </div>
 
         <?php if (!empty($message)): ?>
@@ -540,12 +466,13 @@ $status_colors = [
             <table>
                 <thead>
                     <tr>
-                        <th>Order #</th>
-                        <th>Customer</th>
-                        <th>Total</th>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Phone</th>
                         <th>Status</th>
-                        <th>Payment</th>
-                        <th>Date</th>
+                        <th>Role</th>
+                        <th>Joined</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -553,48 +480,49 @@ $status_colors = [
                     <?php if ($result && mysqli_num_rows($result) > 0): ?>
                         <?php while ($row = mysqli_fetch_assoc($result)): ?>
                             <tr>
-                                <td><strong><?php echo htmlspecialchars($row['order_number'] ?? '#' . $row['id']); ?></strong></td>
+                                <td><?php echo $row['id']; ?></td>
                                 <td>
-                                    <?php echo htmlspecialchars($row['customer_name'] ?? 'N/A'); ?>
-                                    <br><small style="color:#888;"><?php echo htmlspecialchars($row['customer_email'] ?? ''); ?></small>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div class="user-avatar"><?php echo substr($row['name'], 0, 1); ?></div>
+                                        <span><?php echo htmlspecialchars($row['name']); ?></span>
+                                    </div>
                                 </td>
-                                <td class="order-total">₹<?php echo number_format($row['grand_total'] ?? $row['total_amount'], 2); ?></td>
+                                <td><?php echo htmlspecialchars($row['email']); ?></td>
+                                <td><?php echo htmlspecialchars($row['phone']); ?></td>
                                 <td>
-                                    <span class="status-badge" style="background:<?php echo $status_colors[$row['status']] ?? '#888'; ?>;">
+                                    <span class="status-badge status-<?php echo $row['status']; ?>">
                                         <?php echo ucfirst($row['status']); ?>
                                     </span>
-                                    <!-- Quick status update form inline -->
-                                    <form method="POST" action="update-order.php" class="status-form" style="display:inline-block; margin-left:5px;">
-                                        <input type="hidden" name="order_id" value="<?php echo $row['id']; ?>">
-                                        <select name="status" onchange="this.form.submit()">
-                                            <option value="">Change</option>
-                                            <option value="pending" <?php echo ($row['status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                            <option value="confirmed" <?php echo ($row['status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                                            <option value="processing" <?php echo ($row['status'] == 'processing') ? 'selected' : ''; ?>>Processing</option>
-                                            <option value="shipped" <?php echo ($row['status'] == 'shipped') ? 'selected' : ''; ?>>Shipped</option>
-                                            <option value="ontheway" <?php echo ($row['status'] == 'ontheway') ? 'selected' : ''; ?>>On the Way</option>
-                                            <option value="delivered" <?php echo ($row['status'] == 'delivered') ? 'selected' : ''; ?>>Delivered</option>
-                                            <option value="cancelled" <?php echo ($row['status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                            <option value="refunded" <?php echo ($row['status'] == 'refunded') ? 'selected' : ''; ?>>Refunded</option>
-                                        </select>
-                                    </form>
                                 </td>
-                                <td><?php echo htmlspecialchars($row['payment_method'] ?? 'N/A'); ?></td>
-                                <td><?php echo date('d M Y', strtotime($row['order_date'] ?? $row['created_at'])); ?></td>
                                 <td>
-                                    <a href="order-detail.php?id=<?php echo $row['id']; ?>" class="action-btn view" title="View Details">
-                                        <i class="fa-regular fa-eye"></i>
+                                    <span class="role-badge role-<?php echo ($row['role'] ?? 'user'); ?>">
+                                        <?php echo ucfirst($row['role'] ?? 'User'); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo date('d M Y', strtotime($row['created_at'])); ?></td>
+                                <td>
+                                    <a href="edit-user.php?id=<?php echo $row['id']; ?>" class="action-btn edit" title="Edit">
+                                        <i class="fa-regular fa-pen-to-square"></i>
                                     </a>
+                                    <?php if ($row['id'] != $_SESSION['admin_id']): ?>
+                                        <a href="delete-user.php?id=<?php echo $row['id']; ?>" class="action-btn delete" onclick="return confirm('Delete this user?')" title="Delete">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        <span style="color:#888; font-size:12px;" title="Cannot delete yourself">
+                                            <i class="fa-solid fa-lock"></i>
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="empty-msg">
-                                <i class="fa-regular fa-box-open"></i>
-                                No orders found.
-                                <?php if (!empty($search) || !empty($status_filter)): ?>
-                                    <br><small>Try adjusting your filters.</small>
+                            <td colspan="8" class="empty-msg">
+                                <i class="fa-regular fa-users"></i>
+                                No users found.
+                                <?php if (!empty($search)): ?>
+                                    <br><small>Try adjusting your search terms.</small>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -605,7 +533,7 @@ $status_colors = [
             <?php if ($total_pages > 1): ?>
                 <div class="pagination">
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                        <a href="?page=<?php echo $i; ?>&status=<?php echo urlencode($status_filter); ?>&search=<?php echo urlencode($search); ?>" class="<?php echo ($i == $page) ? 'active' : ''; ?>">
+                        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" class="<?php echo ($i == $page) ? 'active' : ''; ?>">
                             <?php echo $i; ?>
                         </a>
                     <?php endfor; ?>
