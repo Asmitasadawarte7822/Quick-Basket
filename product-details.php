@@ -628,19 +628,27 @@ $empty_stars = 5 - $full_stars - ($half_star ? 1 : 0);
         </div>
 
         <!-- Action Buttons -->
-        <div class="action-buttons">
-            <form action="add-to-cart.php" method="POST" style="flex:1; min-width:180px;">
-                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                <input type="hidden" name="quantity" value="1">
-                <button type="submit" class="btn-add-cart" <?php echo ($product['stock'] <= 0) ? 'disabled' : ''; ?>>
-                    <i class="fa-solid fa-cart-plus"></i> Add to Cart
-                </button>
-            </form>
-            <button class="btn-buy-now" onclick="alert('Proceed to checkout!')" <?php echo ($product['stock'] <= 0) ? 'disabled' : ''; ?>>
-                <i class="fa-solid fa-bolt"></i> Buy Now
-            </button>
-        </div>
-
+       <!-- ======== ACTION BUTTONS ======== -->
+<div class="action-buttons">
+    <!-- Add to Cart -->
+    <form action="add-to-cart.php" method="POST" style="flex:1; min-width:180px;">
+        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+        <input type="hidden" name="quantity" value="1">
+        <input type="hidden" name="redirect" value="product-details.php?id=<?php echo $product['id']; ?>">
+        <button type="submit" class="btn-add-cart" <?php echo ($product['stock'] <= 0) ? 'disabled' : ''; ?>>
+            <i class="fa-solid fa-cart-plus"></i> Add to Cart
+        </button>
+    </form>
+    
+    <!-- ✅ Buy Now Button -->
+    <form action="checkout.php" method="POST" style="flex:1; min-width:180px;">
+        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+        <input type="hidden" name="quantity" value="1">
+        <button type="submit" class="btn-buy-now" <?php echo ($product['stock'] <= 0) ? 'disabled' : ''; ?>>
+            <i class="fa-solid fa-bolt"></i> Buy Now
+        </button>
+    </form>
+</div>
         <a href="index.php" class="back-link"><i class="fa-solid fa-arrow-left"></i> Continue Shopping</a>
     </div>
 </div>

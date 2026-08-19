@@ -7,13 +7,14 @@ $user_name = null;
 $is_logged_in = false;
 if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
-    $sql = "SELECT name FROM users WHERE id = ?";
+    $sql = "SELECT name, email FROM users WHERE id = ?";
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, "i", $user_id);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     if ($user = mysqli_fetch_assoc($result)) {
         $user_name = htmlspecialchars($user['name']);
+        $user_email = htmlspecialchars($user['email']);
         $is_logged_in = true;
     }
     mysqli_stmt_close($stmt);
@@ -21,20 +22,37 @@ if (isset($_SESSION['user_id'])) {
 
 $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
 
-// ---------- FETCH DEALS (Products with discounts) ----------
-// Show products that have discount (price > 1000 to simulate discount)
-$deals_sql = "SELECT p.*, s.store_name,
-              (p.price * 1.25) AS original_price,
-              ROUND(((p.price * 1.25 - p.price) / (p.price * 1.25)) * 100) AS discount_percent
-              FROM products p 
-              LEFT JOIN sellers s ON p.seller_id = s.id 
-              WHERE p.status = 'active' AND p.price > 100
-              ORDER BY p.id DESC 
-              LIMIT 12";
-$deals_result = mysqli_query($conn, $deals_sql);
+// ---------- FETCH PRODUCTS ----------
+$product_sql = "SELECT p.*, s.store_name 
+                FROM products p 
+                LEFT JOIN sellers s ON p.seller_id = s.id 
+                WHERE p.status = 'active' 
+                ORDER BY p.id DESC 
+                LIMIT 12";
+$product_result = mysqli_query($conn, $product_sql);
 
-// ---------- FETCH FEATURED CATEGORIES FOR DEALS ----------
-$categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
+// ---------- FETCH CATEGORIES FOR NAV ----------
+$nav_sql = "SELECT slug, name FROM product_categories ORDER BY name LIMIT 6";
+$nav_result = mysqli_query($conn, $nav_sql);
+
+// ---------- FETCH CATEGORY DEALS ----------
+$cat_deals_sql = "SELECT id, name, slug FROM product_categories LIMIT 3";
+$cat_deals_result = mysqli_query($conn, $cat_deals_sql);
+$cat_deals = [];
+while ($row = mysqli_fetch_assoc($cat_deals_result)) {
+    $cat_deals[] = $row;
+}
+
+// Default categories if none exist
+if (empty($cat_deals)) {
+    $cat_deals = [
+        ['name' => 'Mobiles', 'slug' => 'mobiles'],
+        ['name' => 'Fashion', 'slug' => 'fashion'],
+        ['name' => 'Laptops', 'slug' => 'laptops']
+    ];
+}
+
+mysqli_close($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,24 +63,161 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
     <title>Best Deals - Quick Basket</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         /* ============================================
-           DEALS PAGE - PROFESSIONAL
+           DEALS - BLUE, WHITE & YELLOW THEME
            ============================================ */
 
-        .deals-page {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px 40px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
         }
 
-        /* ---------- Hero Banner ---------- */
+        body {
+            background: #f1f3f6;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* ---------- Header ---------- */
+        .top-header {
+            background: #2874f0;
+            padding: 14px 4%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .logo h1 {
+            color: #fff;
+            font-size: 38px;
+            font-weight: 700;
+        }
+
+        .logo span {
+            color: #ffd700;
+        }
+
+        .search-box {
+            flex: 1;
+            display: flex;
+            max-width: 700px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            outline: none;
+            border-radius: 4px 0 0 4px;
+            font-size: 15px;
+        }
+
+        .search-box button {
+            border: none;
+            padding: 14px 30px;
+            background: #ffd700;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .search-box button:hover {
+            background: #f5cf00;
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 25px;
+        }
+
+        .header-icons a {
+            text-decoration: none;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .header-icons a:hover {
+            color: #ffd700;
+        }
+
+        .header-icons i {
+            margin-right: 8px;
+        }
+
+        .badge {
+            background: #ff3b30;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+
+        /* ---------- Category Nav ---------- */
+        .category-nav {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0;
+        }
+
+        .category-nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            align-items: center;
+            min-height: 48px;
+        }
+
+        .category-nav-inner::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-nav-inner a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            padding: 10px 16px;
+            white-space: nowrap;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            transition: 0.3s;
+        }
+
+        .category-nav-inner a:hover {
+            color: #2874f0;
+            border-bottom-color: #2874f0;
+        }
+
+        .category-nav-inner a.active {
+            color: #2874f0;
+            font-weight: 600;
+            border-bottom-color: #2874f0;
+        }
+
+        /* ---------- Deals Page ---------- */
+        .deals-page {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Hero Banner */
         .deals-hero {
-            background: linear-gradient(135deg, #1a56db, #3b82f6);
+            background: linear-gradient(135deg, #2874f0, #1a5bc7);
             border-radius: 16px;
-            padding: 50px 40px;
-            margin: 20px 0 30px;
+            padding: 40px 30px;
+            margin-bottom: 30px;
             text-align: center;
             color: #fff;
             position: relative;
@@ -81,184 +236,33 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             pointer-events: none;
         }
 
-        .deals-hero h1 {
-            font-size: 38px;
-            font-weight: 800;
-            position: relative;
-            z-index: 2;
-        }
-
-        .deals-hero h1 span {
-            color: #fcd34d;
-        }
-
-        .deals-hero p {
-            font-size: 18px;
-            opacity: 0.85;
-            margin-top: 8px;
-            position: relative;
-            z-index: 2;
-        }
-
         .deals-hero .hero-badge {
             display: inline-block;
             background: rgba(255, 255, 255, 0.15);
-            padding: 6px 20px;
+            color: #ffd700;
+            padding: 4px 18px;
             border-radius: 50px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             margin-bottom: 12px;
-            position: relative;
-            z-index: 2;
         }
 
-
-        /* ============================================
-   CATEGORY NAVIGATION - CLEAN HORIZONTAL BAR
-   ============================================ */
-
-        /* ---------- Container ---------- */
-        .category-nav {
-            background: #ffffff;
-            border-bottom: 1px solid #e8e8e8;
-            padding: 0;
-            width: 100%;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        .deals-hero h1 {
+            font-size: 36px;
+            font-weight: 700;
         }
 
-        .category-nav-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-            min-height: 48px;
+        .deals-hero h1 span {
+            color: #ffd700;
         }
 
-        /* ---------- Hide Scrollbar ---------- */
-        .category-nav-inner::-webkit-scrollbar {
-            display: none;
+        .deals-hero p {
+            font-size: 16px;
+            opacity: 0.85;
+            margin-top: 6px;
         }
 
-        .category-nav-inner {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        /* ---------- Navigation Links ---------- */
-        .category-nav-inner a {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 16px;
-            color: #333333;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            white-space: nowrap;
-            transition: all 0.25s ease;
-            border-bottom: 2px solid transparent;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        /* ---------- Hover Effect ---------- */
-        .category-nav-inner a:hover {
-            color: #2874f0;
-            border-bottom-color: #2874f0;
-        }
-
-        /* ---------- Active Link ---------- */
-        .category-nav-inner a.active {
-            color: #2874f0;
-            border-bottom-color: #2874f0;
-            font-weight: 600;
-        }
-
-        /* ---------- First Link (Home) ---------- */
-        .category-nav-inner a:first-child {
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .category-nav-inner a:first-child:hover {
-            color: #2874f0;
-        }
-
-        /* ---------- Icons ---------- */
-        .category-nav-inner a i {
-            font-size: 14px;
-            color: #888;
-            transition: color 0.25s ease;
-        }
-
-        .category-nav-inner a:hover i {
-            color: #2874f0;
-        }
-
-        .category-nav-inner a.active i {
-            color: #2874f0;
-        }
-
-        /* ---------- Separator (optional) ---------- */
-        .category-nav-inner .separator {
-            color: #d0d0d0;
-            font-size: 14px;
-            user-select: none;
-            flex-shrink: 0;
-        }
-
-        /* ---------- Mobile Responsive ---------- */
-        @media (max-width: 768px) {
-            .category-nav-inner {
-                padding: 0 12px;
-                gap: 4px;
-                min-height: 44px;
-            }
-
-            .category-nav-inner a {
-                padding: 8px 12px;
-                font-size: 13px;
-            }
-
-            .category-nav-inner a i {
-                font-size: 13px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .category-nav-inner {
-                padding: 0 8px;
-                gap: 2px;
-                min-height: 40px;
-            }
-
-            .category-nav-inner a {
-                padding: 6px 10px;
-                font-size: 12px;
-            }
-
-            .category-nav-inner a i {
-                font-size: 12px;
-            }
-        }
-
-
-
-   .category-nav-inner a:hover {
-    background: #f0f7ff;
-    border-radius: 6px;
-    border-bottom-color: transparent;
-}
-
-        /* ---------- Category Deal Cards ---------- */
+        /* Category Deal Cards */
         .category-deals {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -273,15 +277,32 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             justify-content: space-between;
             align-items: center;
             transition: 0.4s;
+            min-height: 160px;
+            text-decoration: none;
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            min-height: 160px;
+        }
+
+        .category-deal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.1), transparent);
+            pointer-events: none;
         }
 
         .category-deal-card:hover {
             transform: translateY(-6px);
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .category-deal-card .deal-content {
+            position: relative;
+            z-index: 2;
         }
 
         .category-deal-card .deal-content h3 {
@@ -313,7 +334,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
 
         .category-deal-card .deal-content .btn-deal:hover {
             background: #fff;
-            color: #1a56db;
+            color: #2874f0;
         }
 
         .category-deal-card img {
@@ -321,6 +342,8 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             height: auto;
             object-fit: contain;
             filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.2));
+            position: relative;
+            z-index: 2;
         }
 
         .deal-blue {
@@ -335,7 +358,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             background: linear-gradient(135deg, #0a4a2a, #27ae60);
         }
 
-        /* ---------- Section Header ---------- */
+        /* Section Header */
         .section-header {
             display: flex;
             justify-content: space-between;
@@ -344,9 +367,9 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
         }
 
         .section-header h2 {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 700;
-            color: #1e293b;
+            color: #222;
         }
 
         .section-header h2 span {
@@ -357,7 +380,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             color: #2874f0;
             text-decoration: none;
             font-weight: 600;
-            font-size: 15px;
+            font-size: 14px;
             transition: 0.3s;
         }
 
@@ -365,7 +388,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             text-decoration: underline;
         }
 
-        /* ---------- Products Grid ---------- */
+        /* Products Grid */
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -374,17 +397,16 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
 
         .product-card {
             background: #fff;
+            border: 1px solid #e5e5e5;
             border-radius: 12px;
             overflow: hidden;
             transition: 0.3s;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-            border: 1px solid rgba(0, 0, 0, 0.04);
             position: relative;
         }
 
         .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+            transform: translateY(-6px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
             border-color: #2874f0;
         }
 
@@ -435,7 +457,6 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             transform: scale(1.05);
         }
 
-        /* Discount Badge on Image */
         .product-card .discount-flag {
             position: absolute;
             bottom: 10px;
@@ -455,7 +476,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
         .product-card .info h3 {
             font-size: 15px;
             font-weight: 600;
-            color: #1e293b;
+            color: #222;
             margin-bottom: 4px;
             line-height: 1.3;
             display: -webkit-box;
@@ -466,7 +487,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
 
         .product-card .info .seller {
             font-size: 12px;
-            color: #94a3b8;
+            color: #888;
             margin-bottom: 4px;
         }
 
@@ -492,17 +513,16 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
 
         .product-card .info .price-wrap .old {
             font-size: 14px;
-            color: #94a3b8;
+            color: #888;
             text-decoration: line-through;
         }
 
-        .product-card .info .price-wrap .discount {
+        .product-card .info .price-wrap .discount-text {
             font-size: 13px;
             color: #27ae60;
             font-weight: 600;
         }
 
-        /* Buttons inside card */
         .product-card .info .btn-group {
             display: flex;
             gap: 8px;
@@ -578,11 +598,11 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             color: #2874f0;
         }
 
-        /* ---------- Empty State ---------- */
+        /* Empty State */
         .empty-msg {
             text-align: center;
             padding: 60px 20px;
-            color: #94a3b8;
+            color: #888;
             grid-column: 1/-1;
         }
 
@@ -590,22 +610,101 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             font-size: 60px;
             display: block;
             margin-bottom: 16px;
-            color: #d1d5db;
+            color: #ddd;
         }
 
         .empty-msg h3 {
             font-size: 22px;
-            color: #1e293b;
+            color: #222;
+        }
+
+        /* ---------- Footer ---------- */
+        .footer {
+            background: #172337;
+            color: #fff;
+            margin-top: 30px;
+        }
+
+        .footer-container {
+            width: 95%;
+            margin: auto;
+            padding: 50px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 30px;
+        }
+
+        .footer-box h3 {
+            margin-bottom: 18px;
+        }
+
+        .footer-box p {
+            color: #ccc;
+            line-height: 1.7;
+        }
+
+        .footer-box ul {
+            list-style: none;
+        }
+
+        .footer-box ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-box ul li a {
+            color: #ccc;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .footer-box ul li a:hover {
+            color: #ffd700;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-icons a {
+            width: 40px;
+            height: 40px;
+            background: #2874f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .social-icons a:hover {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            padding: 20px;
+            color: #ccc;
         }
 
         /* ---------- Responsive ---------- */
         @media (max-width: 992px) {
-            .deals-hero {
-                padding: 35px 25px;
+            .top-header {
+                flex-direction: column;
             }
 
-            .deals-hero h1 {
-                font-size: 30px;
+            .search-box {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .header-icons {
+                justify-content: center;
+                flex-wrap: wrap;
             }
 
             .category-deals {
@@ -640,10 +739,8 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
                 flex-direction: column;
             }
 
-            .product-card .info .btn-group .btn-cart,
-            .product-card .info .btn-group .btn-buy {
-                padding: 8px;
-                font-size: 12px;
+            .deals-hero h1 {
+                font-size: 28px;
             }
         }
 
@@ -675,11 +772,7 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             }
 
             .deals-hero h1 {
-                font-size: 24px;
-            }
-
-            .deals-hero p {
-                font-size: 15px;
+                font-size: 22px;
             }
 
             .section-header h2 {
@@ -700,62 +793,43 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
 <body>
 
     <!-- ======== HEADER ======== -->
-    <header class="top-header" style="background:#2874f0; padding:14px 4%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+    <header class="top-header">
         <div class="logo">
-            <h1 style="color:#fff; font-size:30px;">Quick<span style="color:#ffd700;">Basket</span></h1>
+            <h1>Quick<span>Basket</span></h1>
         </div>
-        <div class="search-box" style="flex:1; max-width:500px; display:flex; margin:0 20px;">
-            <input type="text" placeholder="Search for Products, Brands and More" style="flex:1; padding:10px; border:none; border-radius:4px 0 0 4px;">
-            <button style="padding:10px 20px; border:none; background:#ffd700; font-weight:700; border-radius:0 4px 4px 0; cursor:pointer;">SEARCH</button>
+        <div class="search-box">
+            <input type="text" placeholder="Search for Products, Brands and More">
+            <button>SEARCH</button>
         </div>
-        <div style="color:#fff; display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+        <div class="header-icons">
             <?php if ($is_logged_in && $user_name): ?>
-                <a href="dashboard.php" style="color:#fff; text-decoration:none;"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
-                <a href="logout.php" style="color:#ffd700; text-decoration:none;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+                <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
+                <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
             <?php else: ?>
-                <a href="login.php" style="color:#fff; text-decoration:none;"><i class="fa-regular fa-user"></i> Login</a>
+                <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
             <?php endif; ?>
-            <a href="wishlist.php" style="color:#fff; text-decoration:none; position:relative;">
-                <i class="fa-regular fa-heart"></i> Wishlist
-                <span style="background:#ff3b30; color:#fff; border-radius:50%; padding:2px 7px; font-size:11px; margin-left:4px;">
-                    <?php echo isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 0; ?>
-                </span>
-            </a>
-            <a href="cart.php" style="color:#fff; text-decoration:none; position:relative;">
-                <i class="fa-solid fa-cart-shopping"></i> Cart
-                <span style="background:#ff3b30; color:#fff; border-radius:50%; padding:2px 7px; font-size:11px; margin-left:4px;"><?php echo $cart_count; ?></span>
-            </a>
+            <a href="wishlist.php"><i class="fa-regular fa-heart"></i> Wishlist <span class="badge"><?php echo isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 0; ?></span></a>
+            <a href="cart.php"><i class="fa-solid fa-cart-shopping"></i> Cart <span class="badge"><?php echo $cart_count; ?></span></a>
         </div>
     </header>
 
-    <!-- ======== CATEGORY NAVIGATION ======== -->
-    <!-- ======== DYNAMIC CATEGORY NAV ======== -->
+    <!-- ======== CATEGORY NAV ======== -->
     <nav class="category-nav">
         <div class="category-nav-inner">
-            <a href="index.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'active' : ''; ?>">
-                <i class="fa-solid fa-house"></i> Home
-            </a>
-            <a href="deals.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'deals.php') ? 'active' : ''; ?>">
-                <i class="fa-solid fa-fire"></i> Best Deals
-            </a>
-            <a href="categories.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'categories.php') ? 'active' : ''; ?>">
-                <i class="fa-regular fa-folder-open"></i> Categories
-            </a>
-            <?php
-            // Fetch categories from database (limit to 5 for clean look)
-            $nav_sql = "SELECT slug, name FROM product_categories ORDER BY name LIMIT 5";
-            $nav_result = mysqli_query($conn, $nav_sql);
-            while ($cat = mysqli_fetch_assoc($nav_result)):
-                $is_active = (isset($_GET['slug']) && $_GET['slug'] == $cat['slug']);
-            ?>
-                <a href="category-products.php?slug=<?php echo $cat['slug']; ?>" class="<?php echo $is_active ? 'active' : ''; ?>">
-                    <i class="fa-regular fa-tag"></i> <?php echo htmlspecialchars($cat['name']); ?>
-                </a>
-            <?php endwhile; ?>
+            <a href="index.php">Home</a>
+            <a href="deals.php" class="active">Best Deals</a>
+            <a href="categories.php">Categories</a>
+            <?php if ($nav_result && mysqli_num_rows($nav_result) > 0): ?>
+                <?php while ($cat = mysqli_fetch_assoc($nav_result)): ?>
+                    <a href="category-products.php?slug=<?php echo $cat['slug']; ?>">
+                        <?php echo htmlspecialchars($cat['name']); ?>
+                    </a>
+                <?php endwhile; ?>
+            <?php endif; ?>
         </div>
     </nav>
 
-    <!-- ======== DEALS PAGE ======== -->
+    <!-- ======== DEALS CONTENT ======== -->
     <div class="deals-page">
 
         <!-- Hero Banner -->
@@ -765,59 +839,65 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             <p>Shop the hottest deals with up to 70% off on top products.</p>
         </div>
 
-        <!-- Category Deals -->
+        <!-- Category Deal Cards -->
         <div class="category-deals">
-            <div class="category-deal-card deal-blue">
+            <!-- Smartphones card -->
+            <a href="category-products.php?slug=mobiles" class="category-deal-card deal-blue">
                 <div class="deal-content">
                     <h3>Smartphones</h3>
                     <p>Up To 40% OFF</p>
-                    <a href="category-products.php?slug=mobiles" class="btn-deal">Shop Now <i class="fa-solid fa-arrow-right"></i></a>
+                    <span class="btn-deal">Shop Now <i class="fa-solid fa-arrow-right"></i></span>
                 </div>
-                <img src="images/mobile.png" alt="Smartphones">
-            </div>
-            <div class="category-deal-card deal-orange">
-                <div class="deal-content">
-                    <h3>Fashion Sale</h3>
-                    <p>Up To 70% OFF</p>
-                    <a href="category-products.php?slug=fashion" class="btn-deal">Explore <i class="fa-solid fa-arrow-right"></i></a>
-                </div>
-                <img src="images/fashion.png" alt="Fashion">
-            </div>
-            <div class="category-deal-card deal-green">
-                <div class="deal-content">
-                    <h3>Laptops</h3>
-                    <p>Special Student Offers</p>
-                    <a href="category-products.php?slug=laptops" class="btn-deal">Buy Now <i class="fa-solid fa-arrow-right"></i></a>
-                </div>
-                <img src="images/laptop.png" alt="Laptops">
-            </div>
+                <img src="images/mobile.png" alt="Mobiles">
+            </a>
+
+            <!-- Fashion card -->
+            <a href="category-products.php?slug=fashion" class="category-deal-card deal-orange">
+                ...
+            </a>
+
+            <!-- Laptops card -->
+            <a href="category-products.php?slug=laptops" class="category-deal-card deal-green">
+                ...
+            </a>
         </div>
 
-        <!-- Featured Deals Section -->
+        <!-- Featured Deals -->
         <div class="section-header">
             <h2>🔥 Featured <span>Deals</span></h2>
-            <a href="products.php">View All →</a>
+            <a href="categories.php">View All →</a>
         </div>
 
         <div class="products-grid">
-            <?php if ($deals_result && mysqli_num_rows($deals_result) > 0): ?>
-                <?php while ($product = mysqli_fetch_assoc($deals_result)): ?>
+            <?php if ($product_result && mysqli_num_rows($product_result) > 0): ?>
+                <?php while ($product = mysqli_fetch_assoc($product_result)): ?>
+                    <?php
+                    $original_price = $product['price'] * 1.25;
+                    $discount_percent = round((($original_price - $product['price']) / $original_price) * 100);
+                    if ($discount_percent < 0) {
+                        $discount_percent = 0;
+                    }
+                    ?>
                     <div class="product-card">
                         <?php
                         $badge_class = 'badge-deal';
-                        $badge_text = '🔥 Deal';
-                        if ($product['discount_percent'] > 40) {
+                        $badge_text = '💰 Deal';
+                        if ($discount_percent > 40) {
                             $badge_class = 'badge-hot';
                             $badge_text = '🔥 Hot Deal';
-                        } elseif ($product['stock'] > 50) {
+                        } elseif ($discount_percent > 20) {
                             $badge_class = 'badge-sale';
                             $badge_text = '⚡ Sale';
                         }
                         ?>
                         <span class="badge <?php echo $badge_class; ?>"><?php echo $badge_text; ?></span>
                         <div class="image-wrap">
-                            <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
-                            <span class="discount-flag">-<?php echo $product['discount_percent']; ?>%</span>
+                            <img src="<?php echo htmlspecialchars($product['image'] ?: 'https://via.placeholder.com/200/f0f0f0/888?text=No+Image'); ?>"
+                                alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                onerror="this.src='https://via.placeholder.com/200/f0f0f0/888?text=No+Image'">
+                            <?php if ($discount_percent > 0): ?>
+                                <span class="discount-flag">-<?php echo $discount_percent; ?>%</span>
+                            <?php endif; ?>
                         </div>
                         <div class="info">
                             <h3><?php echo htmlspecialchars($product['name']); ?></h3>
@@ -825,8 +905,10 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
                             <div class="rating">★★★★★</div>
                             <div class="price-wrap">
                                 <span class="current">₹<?php echo number_format($product['price'], 2); ?></span>
-                                <span class="old">₹<?php echo number_format($product['original_price'], 2); ?></span>
-                                <span class="discount">(<?php echo $product['discount_percent']; ?>% OFF)</span>
+                                <?php if ($discount_percent > 0): ?>
+                                    <span class="old">₹<?php echo number_format($original_price, 2); ?></span>
+                                    <span class="discount-text">(<?php echo $discount_percent; ?>% OFF)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="btn-group">
                                 <form action="add-to-cart.php" method="POST" style="flex:1;">
@@ -849,8 +931,8 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
             <?php else: ?>
                 <div class="empty-msg">
                     <i class="fa-regular fa-box-open"></i>
-                    <h3>No deals available</h3>
-                    <p>Check back later for exciting offers!</p>
+                    <h3>No products available</h3>
+                    <p>Check back later for exciting deals!</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -859,73 +941,74 @@ $categories = ['Electronics', 'Fashion', 'Mobiles', 'Home & Living'];
     <!-- ======== WHY CHOOSE US ======== -->
     <section style="max-width:1200px; margin:40px auto; padding:0 20px;">
         <div style="text-align:center; margin-bottom:30px;">
-            <h2 style="font-size:30px; font-weight:700; color:#1e293b;">Why Choose <span style="color:#2874f0;">Quick Basket</span>?</h2>
-            <p style="color:#94a3b8;">We provide the best online shopping experience.</p>
+            <h2 style="font-size:28px; font-weight:700; color:#222;">Why Choose <span style="color:#2874f0;">Quick Basket</span>?</h2>
+            <p style="color:#888;">We provide the best online shopping experience.</p>
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:24px;">
-            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee; transition:0.3s;">
+            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee;">
                 <div style="width:56px; height:56px; margin:0 auto 14px; background:#eef4ff; border-radius:50%; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-truck-fast" style="font-size:24px; color:#2874f0;"></i>
                 </div>
                 <h3 style="font-size:18px; margin-bottom:8px;">Fast Delivery</h3>
-                <p style="color:#94a3b8; font-size:14px; line-height:1.7;">Get your orders delivered quickly and safely.</p>
+                <p style="color:#888; font-size:14px; line-height:1.7;">Get your orders delivered quickly and safely.</p>
             </div>
-            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee; transition:0.3s;">
+            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee;">
                 <div style="width:56px; height:56px; margin:0 auto 14px; background:#eef4ff; border-radius:50%; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-shield-halved" style="font-size:24px; color:#2874f0;"></i>
                 </div>
                 <h3 style="font-size:18px; margin-bottom:8px;">Secure Payment</h3>
-                <p style="color:#94a3b8; font-size:14px; line-height:1.7;">100% secure and trusted payment methods.</p>
+                <p style="color:#888; font-size:14px; line-height:1.7;">100% secure and trusted payment methods.</p>
             </div>
-            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee; transition:0.3s;">
+            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee;">
                 <div style="width:56px; height:56px; margin:0 auto 14px; background:#eef4ff; border-radius:50%; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-rotate-left" style="font-size:24px; color:#2874f0;"></i>
                 </div>
                 <h3 style="font-size:18px; margin-bottom:8px;">Easy Returns</h3>
-                <p style="color:#94a3b8; font-size:14px; line-height:1.7;">Simple return and refund process.</p>
+                <p style="color:#888; font-size:14px; line-height:1.7;">Simple return and refund process.</p>
             </div>
-            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee; transition:0.3s;">
+            <div style="background:#fff; padding:30px 20px; border-radius:12px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1px solid #eee;">
                 <div style="width:56px; height:56px; margin:0 auto 14px; background:#eef4ff; border-radius:50%; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-headset" style="font-size:24px; color:#2874f0;"></i>
                 </div>
                 <h3 style="font-size:18px; margin-bottom:8px;">24/7 Support</h3>
-                <p style="color:#94a3b8; font-size:14px; line-height:1.7;">Our support team is always ready to help.</p>
+                <p style="color:#888; font-size:14px; line-height:1.7;">Our support team is always ready to help.</p>
             </div>
         </div>
     </section>
 
     <!-- ======== FOOTER ======== -->
-    <footer class="footer" style="margin-top:40px;">
-        <div class="footer-container" style="max-width:1200px; margin:0 auto; padding:40px 20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:30px;">
+    <footer class="footer">
+        <div class="footer-container">
             <div class="footer-box">
                 <h3>Quick Basket</h3>
-                <p style="color:#ccc; line-height:1.7;">Your trusted online shopping destination for fashion, electronics, home essentials and much more.</p>
+                <p>Your trusted online shopping destination.</p>
             </div>
             <div class="footer-box">
                 <h3>Quick Links</h3>
-                <ul style="list-style:none;">
-                    <li style="margin-bottom:8px;"><a href="index.php" style="color:#ccc; text-decoration:none;">Home</a></li>
-                    <li style="margin-bottom:8px;"><a href="deals.php" style="color:#ccc; text-decoration:none;">Best Deals</a></li>
-                    <li style="margin-bottom:8px;"><a href="categories.php" style="color:#ccc; text-decoration:none;">Categories</a></li>
+                <ul>
+                    <li><a href="index.php">Home</a></li>
+                    <li><a href="deals.php">Best Deals</a></li>
+                    <li><a href="categories.php">Categories</a></li>
                 </ul>
             </div>
             <div class="footer-box">
                 <h3>Customer Support</h3>
-                <ul style="list-style:none;">
-                    <li style="margin-bottom:8px;"><a href="#" style="color:#ccc; text-decoration:none;">Contact Us</a></li>
-                    <li style="margin-bottom:8px;"><a href="#" style="color:#ccc; text-decoration:none;">FAQ</a></li>
+                <ul>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">FAQ</a></li>
                 </ul>
             </div>
             <div class="footer-box">
                 <h3>Follow Us</h3>
-                <div style="display:flex; gap:12px;">
-                    <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-instagram"></i></a>
-                    <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-twitter"></i></a>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
                 </div>
             </div>
         </div>
-        <div style="border-top:1px solid rgba(255,255,255,0.1); text-align:center; padding:20px; color:#ccc;">
+        <div class="footer-bottom">
             <p>© 2026 Quick Basket. All Rights Reserved.</p>
         </div>
     </footer>

@@ -2,7 +2,6 @@
 session_start();
 require_once 'config.php';
 
-// ---------- CHECK LOGIN ----------
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
@@ -19,65 +18,34 @@ $user_result = mysqli_stmt_get_result($stmt);
 $user = mysqli_fetch_assoc($user_result);
 mysqli_stmt_close($stmt);
 
-// ---------- FETCH ORDERS FOR THIS USER ----------
-$orders_sql = "SELECT o.*, 
-               (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count
-               FROM orders o 
-               WHERE o.user_id = ? 
-               ORDER BY o.id DESC";
-$stmt = mysqli_prepare($conn, $orders_sql);
-mysqli_stmt_bind_param($stmt, "i", $user_id);
-mysqli_stmt_execute($stmt);
-$orders_result = mysqli_stmt_get_result($stmt);
-
-$orders = [];
-while ($row = mysqli_fetch_assoc($orders_result)) {
-    $orders[] = $row;
-}
-mysqli_stmt_close($stmt);
-
-// ---------- STATUS COLORS ----------
-$status_colors = [
-    'pending' => '#f39c12',
-    'confirmed' => '#3498db',
-    'processing' => '#9b59b6',
-    'shipped' => '#1abc9c',
-    'ontheway' => '#2ecc71',
-    'delivered' => '#27ae60',
-    'cancelled' => '#e74c3c',
-    'refunded' => '#95a5a6'
-];
-
+// ---------- CART & WISHLIST COUNT ----------
 $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
 $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 0;
+
+mysqli_close($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Orders - Quick Basket</title>
+    <title>Payments - Quick Basket</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* ============================================
-           ORDERS - BLUE, WHITE & YELLOW THEME
-           ============================================ */
-
+        /* Same as manage-address.php - Blue, White & Yellow Theme */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, sans-serif;
         }
-
         body {
             background: #f1f3f6;
             color: #333;
             min-height: 100vh;
         }
 
-        /* ---------- Header ---------- */
         .top-header {
             background: #2874f0;
             padding: 14px 4%;
@@ -138,7 +106,6 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             margin-left: 4px;
         }
 
-        /* ---------- Category Nav ---------- */
         .category-nav {
             background: #fff;
             border-bottom: 1px solid #e0e0e0;
@@ -168,8 +135,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
         .category-nav-inner a:hover { color: #2874f0; border-bottom-color: #2874f0; }
         .category-nav-inner a.active { color: #2874f0; font-weight: 600; border-bottom-color: #2874f0; }
 
-        /* ---------- Layout ---------- */
-        .orders-wrap {
+        .payments-wrap {
             max-width: 1200px;
             margin: 30px auto;
             padding: 0 20px;
@@ -178,8 +144,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             gap: 24px;
         }
 
-        /* ---------- Sidebar ---------- */
-        .orders-sidebar {
+        .payments-sidebar {
             background: #fff;
             border-radius: 12px;
             padding: 24px 20px;
@@ -188,7 +153,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             position: sticky;
             top: 20px;
         }
-        .orders-sidebar .user-section {
+        .payments-sidebar .user-section {
             display: flex;
             align-items: center;
             gap: 14px;
@@ -196,7 +161,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             border-bottom: 1px solid #eee;
             margin-bottom: 16px;
         }
-        .orders-sidebar .user-section .avatar {
+        .payments-sidebar .user-section .avatar {
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -210,10 +175,10 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             text-transform: uppercase;
             flex-shrink: 0;
         }
-        .orders-sidebar .user-section .user-name { font-weight: 600; color: #222; font-size: 16px; }
-        .orders-sidebar .user-section .user-email { font-size: 13px; color: #888; }
-        .orders-sidebar .menu-section { margin-bottom: 12px; }
-        .orders-sidebar .menu-section .menu-title {
+        .payments-sidebar .user-section .user-name { font-weight: 600; color: #222; font-size: 16px; }
+        .payments-sidebar .user-section .user-email { font-size: 13px; color: #888; }
+        .payments-sidebar .menu-section { margin-bottom: 12px; }
+        .payments-sidebar .menu-section .menu-title {
             font-size: 11px;
             font-weight: 700;
             color: #888;
@@ -221,7 +186,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             letter-spacing: 1px;
             margin-bottom: 6px;
         }
-        .orders-sidebar .menu-section a {
+        .payments-sidebar .menu-section a {
             display: block;
             padding: 8px 12px;
             color: #555;
@@ -230,11 +195,11 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             transition: 0.3s;
             border-radius: 8px;
         }
-        .orders-sidebar .menu-section a:hover { background: #f0f7ff; color: #2874f0; }
-        .orders-sidebar .menu-section a.active { background: #e6f0ff; color: #2874f0; font-weight: 600; }
-        .orders-sidebar .menu-section a i { width: 20px; margin-right: 8px; color: #888; }
-        .orders-sidebar .menu-section a:hover i { color: #2874f0; }
-        .orders-sidebar .logout-link {
+        .payments-sidebar .menu-section a:hover { background: #f0f7ff; color: #2874f0; }
+        .payments-sidebar .menu-section a.active { background: #e6f0ff; color: #2874f0; font-weight: 600; }
+        .payments-sidebar .menu-section a i { width: 20px; margin-right: 8px; color: #888; }
+        .payments-sidebar .menu-section a:hover i { color: #2874f0; }
+        .payments-sidebar .logout-link {
             display: block;
             padding: 10px 12px;
             color: #e74c3c;
@@ -247,147 +212,84 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             border-radius: 8px;
             transition: 0.3s;
         }
-        .orders-sidebar .logout-link:hover { background: #fee2e2; }
-        .orders-sidebar .logout-link i { margin-right: 8px; }
+        .payments-sidebar .logout-link:hover { background: #fee2e2; }
+        .payments-sidebar .logout-link i { margin-right: 8px; }
 
-        /* ---------- Main Content ---------- */
-        .orders-main {
+        .payments-main {
             background: #fff;
             border-radius: 12px;
             padding: 24px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.06);
         }
-        .orders-main h2 {
+        .payments-main h2 {
             font-size: 24px;
             color: #222;
             margin-bottom: 20px;
             padding-bottom: 12px;
             border-bottom: 1px solid #eee;
         }
-        .orders-main h2 i { color: #2874f0; }
-        .orders-main h2 span { color: #888; font-weight: 400; font-size: 16px; }
+        .payments-main h2 i { color: #2874f0; }
 
-        /* ---------- Order Card ---------- */
-        .order-card {
+        .payment-option {
             background: #f8f9fa;
             border: 1px solid #e5e5e5;
             border-radius: 10px;
-            margin-bottom: 16px;
-            overflow: hidden;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
             transition: 0.3s;
+            cursor: pointer;
         }
-        .order-card:hover {
+        .payment-option:hover {
             border-color: #2874f0;
             box-shadow: 0 4px 16px rgba(0,0,0,0.06);
             transform: translateY(-2px);
         }
-        .order-card .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 18px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #eee;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .order-card .order-header .order-id {
-            font-weight: 600;
-            color: #2874f0;
-            font-size: 15px;
-        }
-        .order-card .order-header .order-date { color: #888; font-size: 13px; }
-        .order-card .order-header .order-status {
-            padding: 4px 14px;
-            border-radius: 30px;
-            color: #fff;
-            font-weight: 600;
-            font-size: 12px;
-        }
-        .order-card .order-body {
-            padding: 16px 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .order-card .order-body .order-items { display: flex; align-items: center; gap: 10px; }
-        .order-card .order-body .order-items .item-icon {
-            width: 40px;
-            height: 40px;
+        .payment-option .icon {
+            width: 48px;
+            height: 48px;
             background: #e6f0ff;
-            border-radius: 8px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #2874f0;
+            font-size: 22px;
+            flex-shrink: 0;
         }
-        .order-card .order-body .order-items .item-count { color: #888; font-size: 14px; }
-        .order-card .order-body .order-total { text-align: right; }
-        .order-card .order-body .order-total .amount {
-            font-size: 20px;
-            font-weight: 700;
-            color: #2874f0;
+        .payment-option .info {
+            flex: 1;
         }
-        .order-card .order-body .order-total .label { font-size: 12px; color: #888; }
-        .order-card .order-footer {
-            padding: 10px 18px;
-            background: #f8f9fa;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
+        .payment-option .info h4 {
+            color: #222;
+            font-size: 16px;
         }
-        .order-card .order-footer a {
-            text-decoration: none;
+        .payment-option .info p {
+            color: #888;
             font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: 0.3s;
-            padding: 4px 12px;
-            border-radius: 6px;
         }
-        .order-card .order-footer .btn-view { color: #2874f0; }
-        .order-card .order-footer .btn-view:hover { background: #e6f0ff; }
-        .order-card .order-footer .btn-cancel { color: #e74c3c; }
-        .order-card .order-footer .btn-cancel:hover { background: #fee2e2; }
+        .payment-option .status {
+            color: #27ae60;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .payment-option .status i { margin-right: 4px; }
 
-        /* ---------- Empty State ---------- */
-        .empty-orders {
+        .empty-msg {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
+            color: #888;
         }
-        .empty-orders i {
-            font-size: 80px;
-            color: #ddd;
+        .empty-msg i {
+            font-size: 60px;
             display: block;
             margin-bottom: 16px;
+            color: #ddd;
         }
-        .empty-orders h3 {
-            font-size: 24px;
-            color: #222;
-            margin-bottom: 8px;
-        }
-        .empty-orders p {
-            color: #888;
-            margin-bottom: 20px;
-        }
-        .empty-orders .btn-shop {
-            display: inline-block;
-            padding: 12px 36px;
-            background: #2874f0;
-            color: #fff;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-        .empty-orders .btn-shop:hover { background: #0052cc; }
+        .empty-msg h3 { color: #222; font-size: 20px; margin-bottom: 8px; }
 
-        /* ---------- Footer ---------- */
         .footer {
             background: #172337;
             color: #fff;
@@ -428,30 +330,26 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             color: #ccc;
         }
 
-        /* ---------- Responsive ---------- */
         @media (max-width: 992px) {
-            .orders-wrap { grid-template-columns: 1fr; }
-            .orders-sidebar {
+            .payments-wrap { grid-template-columns: 1fr; }
+            .payments-sidebar {
                 position: static;
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 10px;
                 padding: 16px;
             }
-            .orders-sidebar .user-section { grid-column: 1 / -1; }
-            .orders-sidebar .menu-section { margin-bottom: 0; }
-            .orders-sidebar .logout-link { grid-column: 1 / -1; margin-top: 0; }
+            .payments-sidebar .user-section { grid-column: 1 / -1; }
+            .payments-sidebar .menu-section { margin-bottom: 0; }
+            .payments-sidebar .logout-link { grid-column: 1 / -1; margin-top: 0; }
             .top-header { flex-direction: column; }
             .search-box { width: 100%; max-width: 100%; }
             .header-icons { justify-content: center; flex-wrap: wrap; }
         }
         @media (max-width: 768px) {
-            .orders-sidebar { grid-template-columns: 1fr; }
-            .order-card .order-header { flex-direction: column; text-align: center; }
-            .order-card .order-body { flex-direction: column; text-align: center; }
-            .order-card .order-footer { justify-content: center; }
-            .orders-main { padding: 16px; }
-            .orders-main h2 { font-size: 20px; }
+            .payments-sidebar { grid-template-columns: 1fr; }
+            .payments-main { padding: 16px; }
+            .payments-main h2 { font-size: 20px; }
         }
     </style>
 </head>
@@ -480,15 +378,15 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
         <a href="index.php">Home</a>
         <a href="deals.php">Best Deals</a>
         <a href="categories.php">Categories</a>
-        <a href="orders.php" class="active">My Orders</a>
+        <a href="dashboard.php">Dashboard</a>
     </div>
 </nav>
 
-<!-- ======== ORDERS CONTENT ======== -->
-<div class="orders-wrap">
+<!-- ======== PAYMENTS CONTENT ======== -->
+<div class="payments-wrap">
 
     <!-- Sidebar -->
-    <aside class="orders-sidebar">
+    <aside class="payments-sidebar">
         <div class="user-section">
             <div class="avatar"><?php echo $user ? strtoupper(substr($user['name'], 0, 1)) : 'U'; ?></div>
             <div>
@@ -500,9 +398,9 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
         <div class="menu-section">
             <div class="menu-title">Account</div>
             <a href="dashboard.php"><i class="fa-regular fa-user"></i> My Profile</a>
-            <a href="orders.php" class="active"><i class="fa-solid fa-box"></i> My Orders</a>
+            <a href="orders.php"><i class="fa-solid fa-box"></i> My Orders</a>
             <a href="manage-address.php"><i class="fa-solid fa-location-dot"></i> Manage Addresses</a>
-            <a href="payments.php"><i class="fa-regular fa-credit-card"></i> Payments</a>
+            <a href="payments.php" class="active"><i class="fa-regular fa-credit-card"></i> Payments</a>
             <a href="wishlist.php"><i class="fa-regular fa-heart"></i> Wishlist</a>
             <a href="#"><i class="fa-solid fa-ticket"></i> Coupons</a>
         </div>
@@ -513,49 +411,61 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
     </aside>
 
     <!-- Main Content -->
-    <main class="orders-main">
-        <h2><i class="fa-solid fa-box"></i> My Orders <span>(<?php echo count($orders); ?> orders)</span></h2>
+    <main class="payments-main">
+        <h2><i class="fa-regular fa-credit-card"></i> Payment Methods</h2>
 
-        <?php if (!empty($orders)): ?>
-            <?php foreach ($orders as $order): ?>
-                <div class="order-card">
-                    <div class="order-header">
-                        <span class="order-id">Order #<?php echo str_pad($order['id'], 6, '0', STR_PAD_LEFT); ?></span>
-                        <span class="order-date"><i class="fa-regular fa-calendar"></i> <?php echo date('d M Y, h:i A', strtotime($order['order_date'])); ?></span>
-                        <span class="order-status" style="background:<?php echo $status_colors[$order['status']] ?? '#888'; ?>;">
-                            <?php echo ucfirst($order['status']); ?>
-                        </span>
-                    </div>
-                    <div class="order-body">
-                        <div class="order-items">
-                            <div class="item-icon"><i class="fa-solid fa-box"></i></div>
-                            <span class="item-count"><?php echo $order['item_count'] ?? 0; ?> item(s)</span>
-                        </div>
-                        <div class="order-total">
-                            <div class="label">Total Amount</div>
-                            <div class="amount">₹<?php echo number_format($order['total_amount'], 2); ?></div>
-                        </div>
-                    </div>
-                    <div class="order-footer">
-                        <a href="order-detail.php?id=<?php echo $order['id']; ?>" class="btn-view">
-                            <i class="fa-regular fa-eye"></i> View Details
-                        </a>
-                        <?php if ($order['status'] == 'pending' || $order['status'] == 'confirmed'): ?>
-                            <a href="cancel-order.php?id=<?php echo $order['id']; ?>" class="btn-cancel" onclick="return confirm('Are you sure you want to cancel this order?')">
-                                <i class="fa-regular fa-circle-xmark"></i> Cancel Order
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="empty-orders">
-                <i class="fa-regular fa-box-open"></i>
-                <h3>No orders yet</h3>
-                <p>Start shopping to see your orders here.</p>
-                <a href="index.php" class="btn-shop"><i class="fa-solid fa-arrow-left"></i> Continue Shopping</a>
+        <div class="payment-option">
+            <div class="icon"><i class="fa-regular fa-credit-card"></i></div>
+            <div class="info">
+                <h4>Cash on Delivery</h4>
+                <p>Pay when you receive your order</p>
             </div>
-        <?php endif; ?>
+            <div class="status"><i class="fa-regular fa-circle-check"></i> Available</div>
+        </div>
+
+        <div class="payment-option">
+            <div class="icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+            <div class="info">
+                <h4>UPI (Google Pay, PhonePe, Paytm)</h4>
+                <p>Instant payment via UPI</p>
+            </div>
+            <div class="status"><i class="fa-regular fa-circle-check"></i> Available</div>
+        </div>
+
+        <div class="payment-option">
+            <div class="icon"><i class="fa-regular fa-credit-card"></i></div>
+            <div class="info">
+                <h4>Credit / Debit Card</h4>
+                <p>Visa, Mastercard, RuPay, American Express</p>
+            </div>
+            <div class="status"><i class="fa-regular fa-circle-check"></i> Available</div>
+        </div>
+
+        <div class="payment-option">
+            <div class="icon"><i class="fa-solid fa-building-columns"></i></div>
+            <div class="info">
+                <h4>Net Banking</h4>
+                <p>All major banks supported</p>
+            </div>
+            <div class="status"><i class="fa-regular fa-circle-check"></i> Available</div>
+        </div>
+
+        <div class="payment-option">
+            <div class="icon"><i class="fa-regular fa-gift"></i></div>
+            <div class="info">
+                <h4>Gift Cards</h4>
+                <p>Redeem your gift cards</p>
+            </div>
+            <div class="status" style="color:#888;">Coming Soon</div>
+        </div>
+
+        <div style="margin-top:20px; padding:16px; background:#e6f0ff; border:1px solid #2874f0; border-radius:8px;">
+            <p style="color:#555; font-size:14px;">
+                <i class="fa-solid fa-shield-halved" style="color:#2874f0;"></i>
+                <strong style="color:#222;">Secure Payments</strong><br>
+                All transactions are encrypted and secure. Your payment information is safe with us.
+            </p>
+        </div>
     </main>
 </div>
 
@@ -570,8 +480,8 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             <h3>Quick Links</h3>
             <ul>
                 <li><a href="index.php">Home</a></li>
-                <li><a href="deals.php">Best Deals</a></li>
                 <li><a href="categories.php">Categories</a></li>
+                <li><a href="deals.php">Best Deals</a></li>
             </ul>
         </div>
         <div class="footer-box">

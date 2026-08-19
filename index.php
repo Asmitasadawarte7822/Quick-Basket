@@ -229,32 +229,71 @@ if (!$product_result) {
 <section class="best-deals">
     <div class="section-heading">
         <h2>Best Deals For You</h2>
-        <a href="#">View All</a>
+        <a href="deals.php">View All</a>
     </div>
     <div class="deals-container">
         <div class="deal-card deal-blue">
-            <div class="deal-content"><h3>Smartphones</h3><p>Up To 40% OFF</p><a href="product-details.php">Shop Now</a></div>
+            <div class="deal-content">
+                <h3>Smartphones</h3>
+                <p>Up To 40% OFF</p>
+                <a href="deals.php?category=mobiles">Shop Now</a>
+            </div>
             <img src="images/mobile.png" alt="Mobile">
         </div>
         <div class="deal-card deal-orange">
-            <div class="deal-content"><h3>Fashion Sale</h3><p>Up To 70% OFF</p><a href="#">Explore</a></div>
+            <div class="deal-content">
+                <h3>Fashion Sale</h3>
+                <p>Up To 70% OFF</p>
+                <a href="deals.php?category=fashion">Explore</a>
+            </div>
             <img src="images/fashion.png" alt="Fashion">
         </div>
         <div class="deal-card deal-green">
-            <div class="deal-content"><h3>Laptops</h3><p>Special Student Offers</p><a href="#">Buy Now</a></div>
+            <div class="deal-content">
+                <h3>Laptops</h3>
+                <p>Special Student Offers</p>
+                <a href="deals.php?category=laptops">Buy Now</a>
+            </div>
             <img src="images/laptop.png" alt="Laptop">
         </div>
     </div>
 </section>
 
 <!-- ======== WHY CHOOSE US ======== -->
-<section class="why-choose">
-    <div class="section-heading center-heading"><h2>Why Choose Quick Basket?</h2><p>We provide the best online shopping experience.</p></div>
-    <div class="features-container">
-        <div class="feature-box"><i class="fa-solid fa-truck-fast"></i><h3>Fast Delivery</h3><p>Get your orders delivered quickly and safely.</p></div>
-        <div class="feature-box"><i class="fa-solid fa-shield-halved"></i><h3>Secure Payment</h3><p>100% secure and trusted payment methods.</p></div>
-        <div class="feature-box"><i class="fa-solid fa-rotate-left"></i><h3>Easy Returns</h3><p>Simple return and refund process.</p></div>
-        <div class="feature-box"><i class="fa-solid fa-headset"></i><h3>24/7 Support</h3><p>Our support team is always ready to help.</p></div>
+<section class="why-choose-section">
+    <div class="section-header-center">
+        <h2>Why Choose <span>Quick Basket</span>?</h2>
+        <p>We provide the best online shopping experience.</p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fa-solid fa-truck-fast"></i>
+            </div>
+            <h3>Fast Delivery</h3>
+            <p>Get your orders delivered quickly and safely.</p>
+        </div>
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3>Secure Payment</h3>
+            <p>100% secure and trusted payment methods.</p>
+        </div>
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fa-solid fa-rotate-left"></i>
+            </div>
+            <h3>Easy Returns</h3>
+            <p>Simple return and refund process.</p>
+        </div>
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fa-solid fa-headset"></i>
+            </div>
+            <h3>24/7 Support</h3>
+            <p>Our support team is always ready to help.</p>
+        </div>
     </div>
 </section>
 
