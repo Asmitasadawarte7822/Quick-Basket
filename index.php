@@ -25,24 +25,63 @@ if (isset($_SESSION['cart'])) {
     $cart_count = array_sum($_SESSION['cart']);
 }
 
+// ---------- GET CATEGORY FILTER ----------
+$selected_slug = isset($_GET['category']) ? trim($_GET['category']) : '';
+
 // ---------- FETCH CATEGORIES FOR NAV ----------
 $nav_sql = "SELECT slug, name FROM product_categories ORDER BY name";
 $nav_result = mysqli_query($conn, $nav_sql);
 
-// ---------- FETCH FEATURED PRODUCTS ----------
+// ---------- FETCH PRODUCTS (filtered if category selected) ----------
+$product_where = "p.status = 'active'";
+$params = [];
+$types = "";
+
+if (!empty($selected_slug)) {
+    $cat_id_sql = "SELECT id FROM product_categories WHERE slug = ?";
+    $cat_id_stmt = mysqli_prepare($conn, $cat_id_sql);
+    mysqli_stmt_bind_param($cat_id_stmt, "s", $selected_slug);
+    mysqli_stmt_execute($cat_id_stmt);
+    $cat_id_result = mysqli_stmt_get_result($cat_id_stmt);
+    if ($cat_row = mysqli_fetch_assoc($cat_id_result)) {
+        $category_id = $cat_row['id'];
+        $product_where .= " AND p.category_id = ?";
+        $params[] = $category_id;
+        $types .= "i";
+    }
+    mysqli_stmt_close($cat_id_stmt);
+}
+
 $product_sql = "SELECT p.*, s.store_name 
                 FROM products p 
                 LEFT JOIN sellers s ON p.seller_id = s.id 
-                WHERE p.status = 'active' 
+                WHERE $product_where 
                 ORDER BY p.id DESC 
                 LIMIT 8";
-$product_result = mysqli_query($conn, $product_sql);
-if (!$product_result) {
-    $product_result = null;
+
+$stmt = mysqli_prepare($conn, $product_sql);
+if (!empty($params)) {
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
 }
+mysqli_stmt_execute($stmt);
+$product_result = mysqli_stmt_get_result($stmt);
+
+// ---------- GET CATEGORY NAME FOR HEADER ----------
+$selected_category_name = null;
+if (!empty($selected_slug)) {
+    $name_sql = "SELECT name FROM product_categories WHERE slug = ?";
+    $name_stmt = mysqli_prepare($conn, $name_sql);
+    mysqli_stmt_bind_param($name_stmt, "s", $selected_slug);
+    mysqli_stmt_execute($name_stmt);
+    $name_result = mysqli_stmt_get_result($name_stmt);
+    if ($name_row = mysqli_fetch_assoc($name_result)) {
+        $selected_category_name = $name_row['name'];
+    }
+    mysqli_stmt_close($name_stmt);
+}
+
+mysqli_close($conn);
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -70,7 +109,6 @@ if (!$product_result) {
             background: #ccc;
             cursor: not-allowed;
         }
-        /* Category nav styles - keep consistent with your design */
         .category-nav {
             background: #fff;
             border-bottom: 1px solid #e0e0e0;
@@ -100,6 +138,19 @@ if (!$product_result) {
             color: #2874f0;
             border-bottom-color: #2874f0;
         }
+        .category-title {
+            max-width: 1280px;
+            margin: 20px auto 0;
+            padding: 0 20px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #222;
+        }
+        .category-title span {
+            color: #2874f0;
+        }
+        /* Add dark theme support if needed */
+        .dark-theme .category-title { color: #fff; }
     </style>
 </head>
 <body>
@@ -118,7 +169,6 @@ if (!$product_result) {
             <a href="dashboard.php" style="display:flex; align-items:center; gap:6px;">
                 <i class="fa-regular fa-user"></i> <?php echo $user_name; ?>
             </a>
-            <!-- <a href="logout.php"><i class="fa-solid fa-sign-out-alt"></i> Logout</a> -->
         <?php else: ?>
             <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
         <?php endif; ?>
@@ -132,14 +182,15 @@ if (!$product_result) {
     </div>
 </header>
 
-<!-- ======== CATEGORY NAV (DYNAMIC) ======== -->
+<!-- ======== CATEGORY NAV (Dynamic, links to index.php with category) ======== -->
 <nav class="category-nav">
     <div class="category-nav-inner">
-        <a href="index.php" class="active">All Categories</a>
+        <a href="index.php" class="<?php echo empty($selected_slug) ? 'active' : ''; ?>">All Categories</a>
         <a href="categories.php">Browse All</a>
         <?php if ($nav_result && mysqli_num_rows($nav_result) > 0): ?>
             <?php while ($cat = mysqli_fetch_assoc($nav_result)): ?>
-                <a href="category-products.php?slug=<?php echo $cat['slug']; ?>">
+                <a href="index.php?category=<?php echo $cat['slug']; ?>" 
+                   class="<?php echo ($selected_slug == $cat['slug']) ? 'active' : ''; ?>">
                     <?php echo htmlspecialchars($cat['name']); ?>
                 </a>
             <?php endwhile; ?>
@@ -168,50 +219,17 @@ if (!$product_result) {
     <button class="slider-btn right-btn"><i class="fa-solid fa-chevron-right"></i></button>
 </section>
 
-<!-- ======== TOP CATEGORIES (CLICKABLE) ======== -->
-<section class="top-categories">
-    <a href="category-products.php?slug=mobiles" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-mobile-screen"></i></div>
-        <h4>Mobiles</h4>
-    </a>
-    <a href="category-products.php?slug=laptops" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-laptop"></i></div>
-        <h4>Laptops</h4>
-    </a>
-    <a href="category-products.php?slug=fashion" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-shirt"></i></div>
-        <h4>Fashion</h4>
-    </a>
-    <a href="category-products.php?slug=watches" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-clock"></i></div>
-        <h4>Watches</h4>
-    </a>
-    <a href="category-products.php?slug=audio" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-headphones"></i></div>
-        <h4>Audio</h4>
-    </a>
-    <a href="category-products.php?slug=gaming" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-gamepad"></i></div>
-        <h4>Gaming</h4>
-    </a>
-    <a href="category-products.php?slug=furniture" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-couch"></i></div>
-        <h4>Furniture</h4>
-    </a>
-    <a href="category-products.php?slug=jewellery" class="category-circle">
-        <div class="circle-icon"><i class="fa-solid fa-gem"></i></div>
-        <h4>Jewellery</h4>
-    </a>
-
-    </section>
-
-
-
 
 <!-- ======== FEATURED PRODUCTS ======== -->
 <section class="featured-products">
     <div class="section-heading">
-        <h2>Featured Products</h2>
+        <h2>
+            <?php if ($selected_category_name): ?>
+                <?php echo htmlspecialchars($selected_category_name); ?>
+            <?php else: ?>
+                Featured <span>Products</span>
+            <?php endif; ?>
+        </h2>
         <a href="categories.php">View All</a>
     </div>
     <div class="products-grid">
@@ -250,7 +268,7 @@ if (!$product_result) {
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
-            <p style="grid-column:1/-1; text-align:center; color:#888; padding:40px;">No products available at the moment.</p>
+            <p style="grid-column:1/-1; text-align:center; color:#888; padding:40px;">No products available.</p>
         <?php endif; ?>
     </div>
 </section>
@@ -297,30 +315,22 @@ if (!$product_result) {
     </div>
     <div class="features-grid">
         <div class="feature-box">
-            <div class="feature-icon">
-                <i class="fa-solid fa-truck-fast"></i>
-            </div>
+            <div class="feature-icon"><i class="fa-solid fa-truck-fast"></i></div>
             <h3>Fast Delivery</h3>
             <p>Get your orders delivered quickly and safely.</p>
         </div>
         <div class="feature-box">
-            <div class="feature-icon">
-                <i class="fa-solid fa-shield-halved"></i>
-            </div>
+            <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
             <h3>Secure Payment</h3>
             <p>100% secure and trusted payment methods.</p>
         </div>
         <div class="feature-box">
-            <div class="feature-icon">
-                <i class="fa-solid fa-rotate-left"></i>
-            </div>
+            <div class="feature-icon"><i class="fa-solid fa-rotate-left"></i></div>
             <h3>Easy Returns</h3>
             <p>Simple return and refund process.</p>
         </div>
         <div class="feature-box">
-            <div class="feature-icon">
-                <i class="fa-solid fa-headset"></i>
-            </div>
+            <div class="feature-icon"><i class="fa-solid fa-headset"></i></div>
             <h3>24/7 Support</h3>
             <p>Our support team is always ready to help.</p>
         </div>
