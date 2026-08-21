@@ -2,7 +2,6 @@
 session_start();
 require_once 'config.php';
 
-// ---------- USER LOGIN CHECK ----------
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
@@ -15,7 +14,6 @@ $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
 $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
 
 if ($product_id > 0) {
-    // Buy Now - single product
     $sql = "SELECT p.*, s.store_name 
             FROM products p 
             LEFT JOIN sellers s ON p.seller_id = s.id 
@@ -37,7 +35,7 @@ if ($product_id > 0) {
         exit;
     }
 } else {
-    // Cart Checkout - multiple products
+    // Cart Checkout
     $cart_items = [];
     $total = 0;
     if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
@@ -73,7 +71,20 @@ while ($row = mysqli_fetch_assoc($addr_result)) {
 }
 mysqli_stmt_close($stmt);
 
+// ---------- FETCH USER NAME ----------
+$user_sql = "SELECT name FROM users WHERE id = ?";
+$user_stmt = mysqli_prepare($conn, $user_sql);
+mysqli_stmt_bind_param($user_stmt, "i", $user_id);
+mysqli_stmt_execute($user_stmt);
+$user_result = mysqli_stmt_get_result($user_stmt);
+$user = mysqli_fetch_assoc($user_result);
+mysqli_stmt_close($user_stmt);
+
 $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
+
+// Check for address error/success messages
+$address_error = isset($_GET['error']) ? 'Error saving address. Please try again.' : '';
+$address_success = isset($_GET['address_saved']) ? 'Address saved successfully!' : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -84,9 +95,7 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* ============================================
-           CHECKOUT PAGE
-           ============================================ */
+        /* ---------- Checkout Page ---------- */
         .checkout-wrap {
             max-width: 1200px;
             margin: 30px auto;
@@ -96,7 +105,6 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
             gap: 24px;
         }
 
-        /* ---------- Checkout Form ---------- */
         .checkout-form {
             background: #fff;
             border-radius: 12px;
@@ -110,28 +118,25 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
             padding-bottom: 12px;
             border-bottom: 1px solid #eee;
         }
-        .checkout-form h2 i {
-            color: #2874f0;
-        }
-        .checkout-form .section {
+        .checkout-form h2 i { color: #2874f0; }
+
+        .section {
             margin-bottom: 24px;
         }
-        .checkout-form .section h3 {
+        .section h3 {
             font-size: 16px;
             font-weight: 600;
             color: #333;
             margin-bottom: 12px;
         }
-        .checkout-form .section h3 i {
-            color: #2874f0;
-            margin-right: 8px;
-        }
+        .section h3 i { color: #2874f0; margin-right: 8px; }
+
         .form-group {
             margin-bottom: 14px;
         }
         .form-group label {
             display: block;
-            font-weight: 500;
+            font-weight: 600;
             color: #333;
             margin-bottom: 4px;
             font-size: 14px;
@@ -163,7 +168,7 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
             gap: 14px;
         }
 
-        /* ---------- Address Selection ---------- */
+        /* Address Options */
         .address-options {
             display: flex;
             flex-direction: column;
@@ -207,7 +212,65 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
             font-weight: 600;
         }
 
-        /* ---------- Order Summary ---------- */
+        .add-address-link {
+            color: #2874f0;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .add-address-link:hover {
+            text-decoration: underline;
+        }
+
+        /* New Address Form */
+        .new-address-form {
+            display: none;
+            margin-top: 14px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .new-address-form.active {
+            display: block;
+        }
+
+        .btn-save-address {
+            padding: 10px 24px;
+            background: #2874f0;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-save-address:hover {
+            background: #0052cc;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-success {
+            background: #d5f5e3;
+            color: #27ae60;
+            border-left: 4px solid #27ae60;
+        }
+        .alert-error {
+            background: #fadbd8;
+            color: #e74c3c;
+            border-left: 4px solid #e74c3c;
+        }
+        .alert i { font-size: 18px; }
+
+        /* Order Summary */
         .order-summary {
             background: #fff;
             border-radius: 12px;
@@ -257,7 +320,7 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
         .order-summary .total-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 8px 0;
             font-size: 14px;
             color: #555;
         }
@@ -292,29 +355,16 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
             background: #ccc;
             cursor: not-allowed;
         }
-        .btn-place-order i {
-            margin-right: 8px;
-        }
 
         /* ---------- Responsive ---------- */
         @media (max-width: 992px) {
-            .checkout-wrap {
-                grid-template-columns: 1fr;
-            }
-            .order-summary {
-                position: static;
-            }
+            .checkout-wrap { grid-template-columns: 1fr; }
+            .order-summary { position: static; }
         }
         @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            .checkout-form {
-                padding: 16px;
-            }
-            .order-summary {
-                padding: 16px;
-            }
+            .form-row { grid-template-columns: 1fr; }
+            .checkout-form { padding: 16px; }
+            .order-summary { padding: 16px; }
         }
     </style>
 </head>
@@ -323,9 +373,11 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
 <!-- ======== HEADER ======== -->
 <header class="top-header" style="background:#2874f0; padding:14px 4%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
     <div class="logo">
-        <a href="index.php" style="color:#fff; text-decoration:none; font-size:30px; font-weight:700;">
-            Quick<span style="color:#ffd700;">Basket</span>
-        </a>
+        <h1 style="color:#fff; font-size:30px;">Quick<span style="color:#ffd700;">Basket</span></h1>
+    </div>
+    <div class="search-box" style="flex:1; max-width:500px; display:flex; margin:0 20px;">
+        <input type="text" placeholder="Search for Products, Brands and More" style="flex:1; padding:10px; border:none; border-radius:4px 0 0 4px;">
+        <button style="padding:10px 20px; border:none; background:#ffd700; font-weight:700; border-radius:0 4px 4px 0; cursor:pointer;">SEARCH</button>
     </div>
     <div style="color:#fff; display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
         <a href="index.php" style="color:#fff; text-decoration:none;"><i class="fa-solid fa-house"></i> Home</a>
@@ -344,7 +396,14 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
         <!-- Address Section -->
         <div class="section">
             <h3><i class="fa-solid fa-location-dot"></i> Shipping Address</h3>
-            
+
+            <?php if (!empty($address_success)): ?>
+                <div class="alert alert-success"><i class="fa-regular fa-circle-check"></i> <?php echo $address_success; ?></div>
+            <?php endif; ?>
+            <?php if (!empty($address_error)): ?>
+                <div class="alert alert-error"><i class="fa-regular fa-circle-xmark"></i> <?php echo $address_error; ?></div>
+            <?php endif; ?>
+
             <?php if (!empty($addresses)): ?>
                 <div class="address-options">
                     <?php foreach ($addresses as $addr): ?>
@@ -366,46 +425,49 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
                         </label>
                     <?php endforeach; ?>
                 </div>
+            <?php else: ?>
+                <p style="color:#888; margin-bottom:12px;">No saved addresses. Please add one below.</p>
             <?php endif; ?>
 
-            <div style="margin-top:12px;">
-                <a href="#" onclick="toggleNewAddress()" style="color:#2874f0; text-decoration:none; font-weight:500;">
-                    <i class="fa-solid fa-plus"></i> Add New Address
-                </a>
-            </div>
+            <a href="#" class="add-address-link" onclick="toggleNewAddress()">
+                <i class="fa-solid fa-plus"></i> Add New Address
+            </a>
 
-            <!-- New Address Form (hidden by default) -->
-            <div id="newAddressForm" style="display:none; margin-top:14px; padding:16px; background:#f8f9fa; border-radius:8px;">
+            <!-- New Address Form -->
+            <div class="new-address-form" id="newAddressForm">
                 <h4 style="margin-bottom:12px;">Add New Address</h4>
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" name="full_name" id="full_name" placeholder="Enter full name">
-                </div>
-                <div class="form-group">
-                    <label>Phone</label>
-                    <input type="text" name="phone" id="phone" placeholder="Enter phone number">
-                </div>
-                <div class="form-group">
-                    <label>Address</label>
-                    <textarea name="address" id="address" placeholder="Enter full address"></textarea>
-                </div>
-                <div class="form-row">
+                <form method="POST" action="save-address.php" id="addressForm">
+                    <input type="hidden" name="address_id" value="0">
                     <div class="form-group">
-                        <label>City</label>
-                        <input type="text" name="city" id="city" placeholder="City">
+                        <label>Full Name</label>
+                        <input type="text" name="full_name" placeholder="Enter full name" required>
                     </div>
                     <div class="form-group">
-                        <label>State</label>
-                        <input type="text" name="state" id="state" placeholder="State">
+                        <label>Phone</label>
+                        <input type="text" name="phone" placeholder="Enter phone number" required>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Pincode</label>
-                    <input type="text" name="pincode" id="pincode" placeholder="Pincode">
-                </div>
-                <button type="button" onclick="saveAddress()" class="btn-place-order" style="background:#2874f0; padding:10px;">
-                    <i class="fa-regular fa-floppy-disk"></i> Save Address
-                </button>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea name="address" placeholder="Enter full address" required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>City</label>
+                            <input type="text" name="city" placeholder="City" required>
+                        </div>
+                        <div class="form-group">
+                            <label>State</label>
+                            <input type="text" name="state" placeholder="State" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Pincode</label>
+                        <input type="text" name="pincode" placeholder="Pincode" required>
+                    </div>
+                    <button type="submit" class="btn-save-address">
+                        <i class="fa-regular fa-floppy-disk"></i> Save Address
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -464,41 +526,7 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
 <script>
     function toggleNewAddress() {
         const form = document.getElementById('newAddressForm');
-        form.style.display = form.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function saveAddress() {
-        const full_name = document.getElementById('full_name').value;
-        const phone = document.getElementById('phone').value;
-        const address = document.getElementById('address').value;
-        const city = document.getElementById('city').value;
-        const state = document.getElementById('state').value;
-        const pincode = document.getElementById('pincode').value;
-
-        if (!full_name || !phone || !address || !city || !state || !pincode) {
-            alert('Please fill all address fields.');
-            return;
-        }
-
-        // Send AJAX request to save address
-        fetch('save-address.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ full_name, phone, address, city, state, pincode })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Address saved successfully! Please refresh the page.');
-                location.reload();
-            } else {
-                alert('Failed to save address: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Error saving address.');
-            console.error(error);
-        });
+        form.classList.toggle('active');
     }
 
     function placeOrder() {
@@ -511,13 +539,10 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
         }
 
         const addressId = addressRadio.value;
-
-        // Check if it's a cart checkout or buy now
         const isCartCheckout = <?php echo $is_cart_checkout ? 'true' : 'false'; ?>;
         const productId = <?php echo $product_id ?? 0; ?>;
         const quantity = <?php echo $quantity ?? 1; ?>;
 
-        // Create form and submit
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = 'place-order.php';
@@ -571,6 +596,7 @@ $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
                 <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-facebook-f"></i></a>
                 <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-instagram"></i></a>
                 <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-twitter"></i></a>
+                <a href="#" style="width:40px; height:40px; background:#2874f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; text-decoration:none;"><i class="fab fa-linkedin-in"></i></a>
             </div>
         </div>
     </div>

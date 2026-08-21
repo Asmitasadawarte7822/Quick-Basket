@@ -40,12 +40,10 @@ mysqli_stmt_close($stmt);
 $status_colors = [
     'pending' => '#f39c12',
     'confirmed' => '#3498db',
-    'processing' => '#9b59b6',
     'shipped' => '#1abc9c',
-    'ontheway' => '#2ecc71',
     'delivered' => '#27ae60',
     'cancelled' => '#e74c3c',
-    'refunded' => '#95a5a6'
+    'returned' => '#95a5a6'
 ];
 
 $cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
@@ -60,24 +58,18 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* ============================================
-           ORDERS - BLUE, WHITE & YELLOW THEME
-           ============================================ */
-
+        /* Your existing CSS styles here (same as before) */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, sans-serif;
         }
-
         body {
             background: #f1f3f6;
             color: #333;
             min-height: 100vh;
         }
-
-        /* ---------- Header ---------- */
         .top-header {
             background: #2874f0;
             padding: 14px 4%;
@@ -87,17 +79,9 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             gap: 20px;
             flex-wrap: wrap;
         }
-        .logo h1 {
-            color: #fff;
-            font-size: 38px;
-            font-weight: 700;
-        }
+        .logo h1 { color: #fff; font-size: 38px; font-weight: 700; }
         .logo span { color: #ffd700; }
-        .search-box {
-            flex: 1;
-            display: flex;
-            max-width: 700px;
-        }
+        .search-box { flex: 1; display: flex; max-width: 700px; }
         .search-box input {
             width: 100%;
             padding: 14px;
@@ -115,10 +99,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             border-radius: 0 4px 4px 0;
         }
         .search-box button:hover { background: #f5cf00; }
-        .header-icons {
-            display: flex;
-            gap: 25px;
-        }
+        .header-icons { display: flex; gap: 25px; }
         .header-icons a {
             text-decoration: none;
             color: #fff;
@@ -137,8 +118,6 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             font-weight: 700;
             margin-left: 4px;
         }
-
-        /* ---------- Category Nav ---------- */
         .category-nav {
             background: #fff;
             border-bottom: 1px solid #e0e0e0;
@@ -168,7 +147,6 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
         .category-nav-inner a:hover { color: #2874f0; border-bottom-color: #2874f0; }
         .category-nav-inner a.active { color: #2874f0; font-weight: 600; border-bottom-color: #2874f0; }
 
-        /* ---------- Layout ---------- */
         .orders-wrap {
             max-width: 1200px;
             margin: 30px auto;
@@ -177,8 +155,6 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             grid-template-columns: 260px 1fr;
             gap: 24px;
         }
-
-        /* ---------- Sidebar ---------- */
         .orders-sidebar {
             background: #fff;
             border-radius: 12px;
@@ -214,43 +190,21 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
         .orders-sidebar .user-section .user-email { font-size: 13px; color: #888; }
         .orders-sidebar .menu-section { margin-bottom: 12px; }
         .orders-sidebar .menu-section .menu-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
+            font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
         }
         .orders-sidebar .menu-section a {
-            display: block;
-            padding: 8px 12px;
-            color: #555;
-            text-decoration: none;
-            font-size: 14px;
-            transition: 0.3s;
-            border-radius: 8px;
+            display: block; padding: 8px 12px; color: #555; text-decoration: none; font-size: 14px; transition: 0.3s; border-radius: 8px;
         }
         .orders-sidebar .menu-section a:hover { background: #f0f7ff; color: #2874f0; }
         .orders-sidebar .menu-section a.active { background: #e6f0ff; color: #2874f0; font-weight: 600; }
         .orders-sidebar .menu-section a i { width: 20px; margin-right: 8px; color: #888; }
         .orders-sidebar .menu-section a:hover i { color: #2874f0; }
         .orders-sidebar .logout-link {
-            display: block;
-            padding: 10px 12px;
-            color: #e74c3c;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-radius: 8px;
-            transition: 0.3s;
+            display: block; padding: 10px 12px; color: #e74c3c; text-decoration: none; font-weight: 600; font-size: 14px; border-top: 1px solid #eee; margin-top: 16px; padding-top: 16px; border-radius: 8px; transition: 0.3s;
         }
         .orders-sidebar .logout-link:hover { background: #fee2e2; }
         .orders-sidebar .logout-link i { margin-right: 8px; }
 
-        /* ---------- Main Content ---------- */
         .orders-main {
             background: #fff;
             border-radius: 12px;
@@ -258,148 +212,57 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             box-shadow: 0 2px 10px rgba(0,0,0,0.06);
         }
         .orders-main h2 {
-            font-size: 24px;
-            color: #222;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #eee;
+            font-size: 24px; color: #222; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #eee;
         }
         .orders-main h2 i { color: #2874f0; }
         .orders-main h2 span { color: #888; font-weight: 400; font-size: 16px; }
 
-        /* ---------- Order Card ---------- */
         .order-card {
-            background: #f8f9fa;
-            border: 1px solid #e5e5e5;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            overflow: hidden;
-            transition: 0.3s;
+            background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 10px; margin-bottom: 16px; overflow: hidden; transition: 0.3s;
         }
-        .order-card:hover {
-            border-color: #2874f0;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-            transform: translateY(-2px);
-        }
+        .order-card:hover { border-color: #2874f0; box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-2px); }
         .order-card .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 18px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #eee;
-            flex-wrap: wrap;
-            gap: 8px;
+            display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: #f8f9fa; border-bottom: 1px solid #eee; flex-wrap: wrap; gap: 8px;
         }
-        .order-card .order-header .order-id {
-            font-weight: 600;
-            color: #2874f0;
-            font-size: 15px;
-        }
+        .order-card .order-header .order-id { font-weight: 600; color: #2874f0; font-size: 15px; }
         .order-card .order-header .order-date { color: #888; font-size: 13px; }
-        .order-card .order-header .order-status {
-            padding: 4px 14px;
-            border-radius: 30px;
-            color: #fff;
-            font-weight: 600;
-            font-size: 12px;
-        }
+        .order-card .order-header .order-status { padding: 4px 14px; border-radius: 30px; color: #fff; font-weight: 600; font-size: 12px; }
         .order-card .order-body {
-            padding: 16px 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
+            padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
         }
         .order-card .order-body .order-items { display: flex; align-items: center; gap: 10px; }
         .order-card .order-body .order-items .item-icon {
-            width: 40px;
-            height: 40px;
-            background: #e6f0ff;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #2874f0;
+            width: 40px; height: 40px; background: #e6f0ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #2874f0;
         }
         .order-card .order-body .order-items .item-count { color: #888; font-size: 14px; }
         .order-card .order-body .order-total { text-align: right; }
-        .order-card .order-body .order-total .amount {
-            font-size: 20px;
-            font-weight: 700;
-            color: #2874f0;
-        }
+        .order-card .order-body .order-total .amount { font-size: 20px; font-weight: 700; color: #2874f0; }
         .order-card .order-body .order-total .label { font-size: 12px; color: #888; }
         .order-card .order-footer {
-            padding: 10px 18px;
-            background: #f8f9fa;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
+            padding: 10px 18px; background: #f8f9fa; border-top: 1px solid #eee; display: flex; gap: 16px; flex-wrap: wrap;
         }
         .order-card .order-footer a {
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: 0.3s;
-            padding: 4px 12px;
-            border-radius: 6px;
+            text-decoration: none; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: 0.3s; padding: 4px 12px; border-radius: 6px;
         }
         .order-card .order-footer .btn-view { color: #2874f0; }
         .order-card .order-footer .btn-view:hover { background: #e6f0ff; }
         .order-card .order-footer .btn-cancel { color: #e74c3c; }
         .order-card .order-footer .btn-cancel:hover { background: #fee2e2; }
 
-        /* ---------- Empty State ---------- */
-        .empty-orders {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        .empty-orders i {
-            font-size: 80px;
-            color: #ddd;
-            display: block;
-            margin-bottom: 16px;
-        }
-        .empty-orders h3 {
-            font-size: 24px;
-            color: #222;
-            margin-bottom: 8px;
-        }
-        .empty-orders p {
-            color: #888;
-            margin-bottom: 20px;
-        }
+        .empty-orders { text-align: center; padding: 60px 20px; }
+        .empty-orders i { font-size: 80px; color: #ddd; display: block; margin-bottom: 16px; }
+        .empty-orders h3 { font-size: 24px; color: #222; margin-bottom: 8px; }
+        .empty-orders p { color: #888; margin-bottom: 20px; }
         .empty-orders .btn-shop {
-            display: inline-block;
-            padding: 12px 36px;
-            background: #2874f0;
-            color: #fff;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: 0.3s;
+            display: inline-block; padding: 12px 36px; background: #2874f0; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; transition: 0.3s;
         }
         .empty-orders .btn-shop:hover { background: #0052cc; }
 
-        /* ---------- Footer ---------- */
         .footer {
-            background: #172337;
-            color: #fff;
-            margin-top: 30px;
+            background: #172337; color: #fff; margin-top: 30px;
         }
         .footer-container {
-            width: 95%;
-            margin: auto;
-            padding: 50px 0;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 30px;
+            width: 95%; margin: auto; padding: 50px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 30px;
         }
         .footer-box h3 { margin-bottom: 18px; }
         .footer-box p { color: #ccc; line-height: 1.7; }
@@ -409,34 +272,17 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
         .footer-box ul li a:hover { color: #ffd700; }
         .social-icons { display: flex; gap: 12px; }
         .social-icons a {
-            width: 40px;
-            height: 40px;
-            background: #2874f0;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #fff;
-            text-decoration: none;
-            transition: 0.3s;
+            width: 40px; height: 40px; background: #2874f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; text-decoration: none; transition: 0.3s;
         }
         .social-icons a:hover { background: #ffd700; color: #000; }
         .footer-bottom {
-            border-top: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-            padding: 20px;
-            color: #ccc;
+            border-top: 1px solid rgba(255,255,255,0.1); text-align: center; padding: 20px; color: #ccc;
         }
 
-        /* ---------- Responsive ---------- */
         @media (max-width: 992px) {
             .orders-wrap { grid-template-columns: 1fr; }
             .orders-sidebar {
-                position: static;
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-                padding: 16px;
+                position: static; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px;
             }
             .orders-sidebar .user-section { grid-column: 1 / -1; }
             .orders-sidebar .menu-section { margin-bottom: 0; }

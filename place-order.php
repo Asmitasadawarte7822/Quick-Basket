@@ -2,17 +2,21 @@
 session_start();
 require_once 'config.php';
 
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // ---------- CHECK LOGIN ----------
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
 
-$user_id = $_SESSION['user_id']; // ✅ This is critical!
+$user_id = $_SESSION['user_id'];
 
 // ---------- GET POST DATA ----------
 $address_id = isset($_POST['address_id']) ? (int)$_POST['address_id'] : 0;
-$payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : 'COD';
+$payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : 'cod';
 $is_cart_checkout = isset($_POST['is_cart_checkout']) && $_POST['is_cart_checkout'] == '1';
 $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
 $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
@@ -77,7 +81,8 @@ $address_text = $address['full_name'] . "\n" . $address['address'] . "\n" .
                 $address['city'] . ', ' . $address['state'] . ' - ' . $address['pincode'] . "\n" .
                 '📞 ' . $address['phone'];
 
-// ---------- INSERT ORDER (✅ user_id is saved) ----------
+// ---------- INSERT ORDER (MATCHES YOUR TABLE EXACTLY) ----------
+// Your columns: user_id, order_date, status, total_amount, shipping_address, payment_method, payment_status
 $sql = "INSERT INTO orders (user_id, total_amount, status, shipping_address, payment_method, payment_status, order_date) 
         VALUES (?, ?, 'pending', ?, ?, 'pending', NOW())";
 $stmt = mysqli_prepare($conn, $sql);
@@ -87,11 +92,11 @@ $order_id = mysqli_insert_id($conn);
 mysqli_stmt_close($stmt);
 
 if ($order_id <= 0) {
-    header('Location: checkout.php?error=order');
-    exit;
+    die("Error inserting order: " . mysqli_error($conn));
 }
 
 // ---------- INSERT ORDER ITEMS ----------
+// Your order_items columns: order_id, product_id, quantity, price (from your image)
 foreach ($cart_items as $item) {
     $sql = "INSERT INTO order_items (order_id, product_id, quantity, price) 
             VALUES (?, ?, ?, ?)";

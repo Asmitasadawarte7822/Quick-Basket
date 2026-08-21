@@ -41,6 +41,8 @@ if (!$product_result) {
     $product_result = null;
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -166,17 +168,45 @@ if (!$product_result) {
     <button class="slider-btn right-btn"><i class="fa-solid fa-chevron-right"></i></button>
 </section>
 
-<!-- ======== TOP CATEGORIES (STATIC ICONS) ======== -->
+<!-- ======== TOP CATEGORIES (CLICKABLE) ======== -->
 <section class="top-categories">
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-mobile-screen"></i></div><h4>Mobiles</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-laptop"></i></div><h4>Laptops</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-shirt"></i></div><h4>Fashion</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-clock"></i></div><h4>Watches</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-headphones"></i></div><h4>Audio</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-gamepad"></i></div><h4>Gaming</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-couch"></i></div><h4>Furniture</h4></div>
-    <div class="category-circle"><div class="circle-icon"><i class="fa-solid fa-gem"></i></div><h4>Jewellery</h4></div>
-</section>
+    <a href="category-products.php?slug=mobiles" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+        <h4>Mobiles</h4>
+    </a>
+    <a href="category-products.php?slug=laptops" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-laptop"></i></div>
+        <h4>Laptops</h4>
+    </a>
+    <a href="category-products.php?slug=fashion" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-shirt"></i></div>
+        <h4>Fashion</h4>
+    </a>
+    <a href="category-products.php?slug=watches" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-clock"></i></div>
+        <h4>Watches</h4>
+    </a>
+    <a href="category-products.php?slug=audio" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-headphones"></i></div>
+        <h4>Audio</h4>
+    </a>
+    <a href="category-products.php?slug=gaming" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-gamepad"></i></div>
+        <h4>Gaming</h4>
+    </a>
+    <a href="category-products.php?slug=furniture" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-couch"></i></div>
+        <h4>Furniture</h4>
+    </a>
+    <a href="category-products.php?slug=jewellery" class="category-circle">
+        <div class="circle-icon"><i class="fa-solid fa-gem"></i></div>
+        <h4>Jewellery</h4>
+    </a>
+
+    </section>
+
+
+
 
 <!-- ======== FEATURED PRODUCTS ======== -->
 <section class="featured-products">

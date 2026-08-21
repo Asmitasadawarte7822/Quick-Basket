@@ -10,50 +10,62 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $full_name = mysqli_real_escape_string($conn, $_POST['full_name'] ?? '');
-    $phone = mysqli_real_escape_string($conn, $_POST['phone'] ?? '');
-    $address = mysqli_real_escape_string($conn, $_POST['address'] ?? '');
-    $city = mysqli_real_escape_string($conn, $_POST['city'] ?? '');
-    $state = mysqli_real_escape_string($conn, $_POST['state'] ?? '');
-    $pincode = mysqli_real_escape_string($conn, $_POST['pincode'] ?? '');
+    // Get form data
+    $full_name = trim($_POST['full_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $city = trim($_POST['city'] ?? '');
+    $state = trim($_POST['state'] ?? '');
+    $pincode = trim($_POST['pincode'] ?? '');
     $address_id = isset($_POST['address_id']) ? (int)$_POST['address_id'] : 0;
 
+    // Validate
     if (empty($full_name) || empty($phone) || empty($address) || empty($city) || empty($state) || empty($pincode)) {
-        header('Location: manage-address.php?error=1');
+        $_SESSION['address_error'] = 'All fields are required.';
+        header('Location: checkout.php?error=1');
         exit;
     }
+
+    // Escape values
+    $full_name = mysqli_real_escape_string($conn, $full_name);
+    $phone = mysqli_real_escape_string($conn, $phone);
+    $address = mysqli_real_escape_string($conn, $address);
+    $city = mysqli_real_escape_string($conn, $city);
+    $state = mysqli_real_escape_string($conn, $state);
+    $pincode = mysqli_real_escape_string($conn, $pincode);
 
     if ($address_id > 0) {
-        $sql = "UPDATE addresses SET full_name = ?, phone = ?, address = ?, city = ?, state = ?, pincode = ? 
-                WHERE id = ? AND user_id = ?";
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ssssssii", $full_name, $phone, $address, $city, $state, $pincode, $address_id, $user_id);
+        // Update existing address
+        $sql = "UPDATE addresses SET 
+                full_name = '$full_name', 
+                phone = '$phone', 
+                address = '$address', 
+                city = '$city', 
+                state = '$state', 
+                pincode = '$pincode' 
+                WHERE id = $address_id AND user_id = $user_id";
     } else {
-        $check_sql = "SELECT COUNT(*) AS total FROM addresses WHERE user_id = ?";
-        $check_stmt = mysqli_prepare($conn, $check_sql);
-        mysqli_stmt_bind_param($check_stmt, "i", $user_id);
-        mysqli_stmt_execute($check_stmt);
-        $check_result = mysqli_stmt_get_result($check_stmt);
+        // Check if this is the first address (make it default)
+        $check_sql = "SELECT COUNT(*) AS total FROM addresses WHERE user_id = $user_id";
+        $check_result = mysqli_query($conn, $check_sql);
         $check_row = mysqli_fetch_assoc($check_result);
         $is_default = ($check_row['total'] == 0) ? 1 : 0;
-        mysqli_stmt_close($check_stmt);
 
+        // Insert new address
         $sql = "INSERT INTO addresses (user_id, full_name, phone, address, city, state, pincode, is_default) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "issssssi", $user_id, $full_name, $phone, $address, $city, $state, $pincode, $is_default);
+                VALUES ($user_id, '$full_name', '$phone', '$address', '$city', '$state', '$pincode', $is_default)";
     }
 
-    if (mysqli_stmt_execute($stmt)) {
-        header('Location: manage-address.php?saved=1');
+    if (mysqli_query($conn, $sql)) {
+        header('Location: checkout.php?address_saved=1');
         exit;
     } else {
-        header('Location: manage-address.php?error=1');
+        $_SESSION['address_error'] = 'Database error: ' . mysqli_error($conn);
+        header('Location: checkout.php?error=1');
         exit;
     }
-    mysqli_stmt_close($stmt);
 } else {
-    header('Location: manage-address.php');
+    header('Location: checkout.php');
     exit;
 }
 ?>
