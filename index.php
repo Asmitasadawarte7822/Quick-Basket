@@ -19,20 +19,22 @@ if (isset($_SESSION['user_id'])) {
     mysqli_stmt_close($stmt);
 }
 
-// ---------- CART COUNT ----------
-$cart_count = 0;
-if (isset($_SESSION['cart'])) {
-    $cart_count = array_sum($_SESSION['cart']);
-}
+// ---------- CART & WISHLIST ----------
+$cart_count = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
+$wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 0;
 
 // ---------- GET CATEGORY FILTER ----------
 $selected_slug = isset($_GET['category']) ? trim($_GET['category']) : '';
 
-// ---------- FETCH CATEGORIES FOR NAV ----------
-$nav_sql = "SELECT slug, name FROM product_categories ORDER BY name";
-$nav_result = mysqli_query($conn, $nav_sql);
+// ---------- FETCH ALL CATEGORIES ----------
+$all_cat_sql = "SELECT slug, name FROM product_categories ORDER BY name";
+$all_cat_result = mysqli_query($conn, $all_cat_sql);
+$all_categories = [];
+while ($row = mysqli_fetch_assoc($all_cat_result)) {
+    $all_categories[] = $row;
+}
 
-// ---------- FETCH PRODUCTS (filtered if category selected) ----------
+// ---------- FETCH PRODUCTS ----------
 $product_where = "p.status = 'active'";
 $params = [];
 $types = "";
@@ -57,7 +59,7 @@ $product_sql = "SELECT p.*, s.store_name
                 LEFT JOIN sellers s ON p.seller_id = s.id 
                 WHERE $product_where 
                 ORDER BY p.id DESC 
-                LIMIT 8";
+                LIMIT 12";
 
 $stmt = mysqli_prepare($conn, $product_sql);
 if (!empty($params)) {
@@ -66,8 +68,8 @@ if (!empty($params)) {
 mysqli_stmt_execute($stmt);
 $product_result = mysqli_stmt_get_result($stmt);
 
-// ---------- GET CATEGORY NAME FOR HEADER ----------
-$selected_category_name = null;
+// ---------- GET CATEGORY NAME ----------
+$selected_category_name = 'All Products';
 if (!empty($selected_slug)) {
     $name_sql = "SELECT name FROM product_categories WHERE slug = ?";
     $name_stmt = mysqli_prepare($conn, $name_sql);
@@ -80,6 +82,30 @@ if (!empty($selected_slug)) {
     mysqli_stmt_close($name_stmt);
 }
 
+
+
+// ---------- CATEGORY ICONS ----------
+$category_icons = [
+    'Mobiles' => 'fa-solid fa-mobile-screen',
+    'Laptops' => 'fa-solid fa-laptop',
+    'Fashion' => 'fa-solid fa-shirt',
+    'Watches' => 'fa-solid fa-clock',
+    'Audio' => 'fa-solid fa-headphones',
+    'Gaming' => 'fa-solid fa-gamepad',
+    'Furniture' => 'fa-solid fa-couch',
+    'Jewellery' => 'fa-solid fa-gem',
+    'Books' => 'fa-solid fa-book',
+    'Electronics' => 'fa-solid fa-microchip',
+    'Beauty' => 'fa-solid fa-wand-magic-sparkles',
+    'Sports' => 'fa-solid fa-football',
+    'Home' => 'fa-solid fa-house',
+    'Appliances' => 'fa-solid fa-blender',
+    'Automotive' => 'fa-solid fa-car',
+    'Toys' => 'fa-solid fa-robot',
+    'Grocery' => 'fa-solid fa-basket-shopping',
+    'Health' => 'fa-solid fa-heart-pulse'
+];
+
 mysqli_close($conn);
 ?>
 <!DOCTYPE html>
@@ -91,66 +117,6 @@ mysqli_close($conn);
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        .add-to-cart-btn {
-            width: 100%;
-            border: none;
-            background: #2874f0;
-            color: #fff;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-        .add-to-cart-btn:hover {
-            background: #0052cc;
-        }
-        .add-to-cart-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .category-nav {
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 10px 0;
-            overflow-x: auto;
-        }
-        .category-nav-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            gap: 20px;
-            flex-wrap: nowrap;
-        }
-        .category-nav-inner a {
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-            padding: 5px 10px;
-            white-space: nowrap;
-            transition: 0.3s;
-            border-bottom: 2px solid transparent;
-        }
-        .category-nav-inner a:hover,
-        .category-nav-inner a.active {
-            color: #2874f0;
-            border-bottom-color: #2874f0;
-        }
-        .category-title {
-            max-width: 1280px;
-            margin: 20px auto 0;
-            padding: 0 20px;
-            font-size: 24px;
-            font-weight: 700;
-            color: #222;
-        }
-        .category-title span {
-            color: #2874f0;
-        }
-        /* Add dark theme support if needed */
-        .dark-theme .category-title { color: #fff; }
     </style>
 </head>
 <body>
@@ -160,71 +126,215 @@ mysqli_close($conn);
     <div class="logo">
         <h1>Quick<span>Basket</span></h1>
     </div>
-    <div class="search-box">
-        <input type="text" placeholder="Search for Products, Brands and More">
-        <button>SEARCH</button>
-    </div>
+    <!-- ======== SEARCH BAR (WORKING) ======== -->
+<form action="search-results.php" method="GET" class="search-box">
+    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+    <input type="text" name="query" placeholder="Search for Products, Brands and More..." autocomplete="off">
+    <button type="submit"><i class="fa-solid fa-magnifying-glass"></i> SEARCH</button>
+</form>
     <div class="header-icons">
         <?php if ($is_logged_in): ?>
-            <a href="dashboard.php" style="display:flex; align-items:center; gap:6px;">
-                <i class="fa-regular fa-user"></i> <?php echo $user_name; ?>
-            </a>
+            <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
+            <a href="logout.php" style="color:#f87171;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
         <?php else: ?>
             <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
         <?php endif; ?>
-        <a href="wishlist.php"><i class="fa-regular fa-heart"></i> Wishlist</a>
+        <a href="wishlist.php"><i class="fa-regular fa-heart"></i> Wishlist <span class="badge"><?php echo $wishlist_count; ?></span></a>
         <a href="cart.php">
             <i class="fa-solid fa-cart-shopping"></i> Cart
-            <span style="background:#ff3b30; color:#fff; border-radius:50%; padding:3px 7px; font-size:11px; margin-left:4px;">
-                <?php echo $cart_count; ?>
-            </span>
+            <span class="badge"><?php echo $cart_count; ?></span>
         </a>
     </div>
 </header>
 
-<!-- ======== CATEGORY NAV (Dynamic, links to index.php with category) ======== -->
-<nav class="category-nav">
+<!-- ======== CATEGORY NAV ======== -->
+<!-- <nav class="category-nav">
     <div class="category-nav-inner">
-        <a href="index.php" class="<?php echo empty($selected_slug) ? 'active' : ''; ?>">All Categories</a>
-        <a href="categories.php">Browse All</a>
-        <?php if ($nav_result && mysqli_num_rows($nav_result) > 0): ?>
-            <?php while ($cat = mysqli_fetch_assoc($nav_result)): ?>
-                <a href="index.php?category=<?php echo $cat['slug']; ?>" 
-                   class="<?php echo ($selected_slug == $cat['slug']) ? 'active' : ''; ?>">
-                    <?php echo htmlspecialchars($cat['name']); ?>
-                </a>
-            <?php endwhile; ?>
-        <?php endif; ?>
+        <a href="index.php" class="all-link <?php echo empty($selected_slug) ? 'active' : ''; ?>">
+            <i class="fa-solid fa-th-large"></i> All
+        </a>
+        <?php foreach ($all_categories as $cat): ?>
+            <a href="index.php?category=<?php echo $cat['slug']; ?>" 
+               class="<?php echo ($selected_slug == $cat['slug']) ? 'active' : ''; ?>">
+                <?php echo htmlspecialchars($cat['name']); ?>
+            </a>
+        <?php endforeach; ?>
     </div>
-</nav>
+</nav> -->
 
-<!-- ======== HERO BANNER ======== -->
+<!-- ======== FLIPKART-STYLE CATEGORY BAR ======== -->
+<div class="category-bar">
+    <div class="category-bar-inner">
+        <?php foreach ($all_categories as $cat): 
+            $icon = $category_icons[$cat['name']] ?? 'fa-regular fa-tag';
+        ?>
+            <a href="index.php?category=<?php echo $cat['slug']; ?>" 
+               class="category-bar-item <?php echo ($selected_slug == $cat['slug']) ? 'active' : ''; ?>">
+                <i class="<?php echo $icon; ?>"></i>
+                <span><?php echo htmlspecialchars($cat['name']); ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ======== PROFESSIONAL MULTI-SLIDE BANNER ======== -->
+<!-- ============================================ -->
 <section class="hero-banner">
-    <button class="slider-btn left-btn"><i class="fa-solid fa-chevron-left"></i></button>
-    <div class="hero-content">
-        <div class="hero-text">
-            <h4>MEGA SALE</h4>
-            <h1>THE BIG <br>BILLION DAYS</h1>
-            <h2>UP TO 70% OFF</h2>
-            <p>On Fashion, Electronics, Mobiles, Home & Living and More</p>
-            <a href="#" class="shop-now-btn">SHOP NOW</a>
+    <div class="hero-wrapper">
+        <div class="hero-slider" id="heroSlider">
+            
+            <!-- Slide 1: Mega Sale -->
+            <div class="hero-slide active">
+                <div class="hero-badge">🔥 Limited Time Offer</div>
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <span class="hero-subtitle">MEGA SALE</span>
+                        <h1 class="hero-title">THE BIG <br><span>BILLION DAYS</span></h1>
+                        <div class="hero-offer">
+                            <span class="offer-number">70%</span>
+                            <span class="offer-text">OFF</span>
+                        </div>
+                        <p class="hero-desc">On Fashion, Electronics, Mobiles,<br>Home & Living and More</p>
+                        <div class="hero-buttons">
+                            <a href="#" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="#" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Explore More</a>
+                        </div>
+                    </div>
+                    <div class="hero-right">
+                        <div class="floating-image img-1"><img src="images/mobile.png" alt="Mobile"><span class="price-tag">₹11,999*</span></div>
+                        <div class="floating-image img-2"><img src="images/laptop.png" alt="Laptop"><span class="price-tag">₹59,999*</span></div>
+                        <div class="floating-image img-3"><img src="images/watch.png" alt="Watch"><span class="price-tag">₹2,499*</span></div>
+                        <div class="floating-image img-4"><img src="images/shoes.png" alt="Shoes"><span class="price-tag">₹1,799*</span></div>
+                        <div class="hero-glow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: Electronics Festival -->
+            <div class="hero-slide">
+                <div class="hero-badge">🎉 Tech Festival</div>
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <span class="hero-subtitle">ELECTRONICS SALE</span>
+                        <h1 class="hero-title">UP TO <span>60% OFF</span><br>ON LAPTOPS</h1>
+                        <div class="hero-offer">
+                            <span class="offer-number">60%</span>
+                            <span class="offer-text">OFF</span>
+                        </div>
+                        <p class="hero-desc">Premium Laptops, Accessories & More<br>Student Special Offers Available</p>
+                        <div class="hero-buttons">
+                            <a href="category-products.php?slug=laptops" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="#" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Learn More</a>
+                        </div>
+                    </div>
+                    <div class="hero-right">
+                        <div class="floating-image img-1"><img src="images/laptop.png" alt="Laptop"><span class="price-tag">₹39,999*</span></div>
+                        <div class="floating-image img-2"><img src="images/headphone.png" alt="Headphone"><span class="price-tag">₹1,499*</span></div>
+                        <div class="floating-image img-3"><img src="images/mobile.png" alt="Mobile"><span class="price-tag">₹15,999*</span></div>
+                        <div class="hero-glow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3: Fashion Sale -->
+            <div class="hero-slide">
+                <div class="hero-badge">👗 Fashion Week</div>
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <span class="hero-subtitle">FASHION SALE</span>
+                        <h1 class="hero-title"><span>STYLE</span> YOUR<br>DREAM LOOK</h1>
+                        <div class="hero-offer">
+                            <span class="offer-number">50%</span>
+                            <span class="offer-text">OFF</span>
+                        </div>
+                        <p class="hero-desc">Latest Trends, Premium Quality<br>Mens, Women & Kids Collection</p>
+                        <div class="hero-buttons">
+                            <a href="category-products.php?slug=fashion" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="#" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Explore Collection</a>
+                        </div>
+                    </div>
+                    <div class="hero-right">
+                        <div class="floating-image img-1"><img src="images/shoes.png" alt="Shoes"><span class="price-tag">₹1,299*</span></div>
+                        <div class="floating-image img-2"><img src="images/fashion.png" alt="Fashion"><span class="price-tag">₹799*</span></div>
+                        <div class="floating-image img-3"><img src="images/watch.png" alt="Watch"><span class="price-tag">₹1,999*</span></div>
+                        <div class="hero-glow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4: Home & Living -->
+            <div class="hero-slide">
+                <div class="hero-badge">🏠 Home Special</div>
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <span class="hero-subtitle">HOME & LIVING</span>
+                        <h1 class="hero-title">MAKE YOUR<br><span>HOME BEAUTIFUL</span></h1>
+                        <div class="hero-offer">
+                            <span class="offer-number">40%</span>
+                            <span class="offer-text">OFF</span>
+                        </div>
+                        <p class="hero-desc">Furniture, Decor, Kitchenware<br>& Home Essentials</p>
+                        <div class="hero-buttons">
+                            <a href="category-products.php?slug=home" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="#" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Explore More</a>
+                        </div>
+                    </div>
+                    <div class="hero-right">
+                        <div class="floating-image img-1"><img src="images/furniture.png" alt="Furniture"><span class="price-tag">₹9,999*</span></div>
+                        <div class="floating-image img-2"><img src="images/couch.png" alt="Couch"><span class="price-tag">₹14,999*</span></div>
+                        <div class="floating-image img-3"><img src="images/light.png" alt="Light"><span class="price-tag">₹499*</span></div>
+                        <div class="hero-glow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5: Gadget Fest -->
+            <div class="hero-slide">
+                <div class="hero-badge">⚡ Gadget Fest</div>
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <span class="hero-subtitle">GADGET FEST</span>
+                        <h1 class="hero-title"><span>TECH</span> UP YOUR<br>LIFESTYLE</h1>
+                        <div class="hero-offer">
+                            <span class="offer-number">55%</span>
+                            <span class="offer-text">OFF</span>
+                        </div>
+                        <p class="hero-desc">Smartphones, Audio, Wearables<br>& Gaming Accessories</p>
+                        <div class="hero-buttons">
+                            <a href="category-products.php?slug=gaming" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="#" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Explore More</a>
+                        </div>
+                    </div>
+                    <div class="hero-right">
+                        <div class="floating-image img-1"><img src="images/mobile.png" alt="Mobile"><span class="price-tag">₹10,999*</span></div>
+                        <div class="floating-image img-2"><img src="images/headphone.png" alt="Headphone"><span class="price-tag">₹1,299*</span></div>
+                        <div class="floating-image img-3"><img src="images/gaming.png" alt="Gaming"><span class="price-tag">₹2,499*</span></div>
+                        <div class="hero-glow"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <div class="hero-image">
-            <img src="images/mobile.jpg" alt="Mobile">
-            <img src="images/laptop.png" alt="Laptop">
-            <img src="images/watch.png" alt="Watch">
-            <img src="images/shoes.png" alt="Shoes">
+
+        <!-- Slider Controls -->
+        <div class="hero-controls">
+            <button class="slider-btn prev" onclick="changeSlide(-1)">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="slider-dots" id="sliderDots"></div>
+            <button class="slider-btn next" onclick="changeSlide(1)">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
         </div>
     </div>
-    <button class="slider-btn right-btn"><i class="fa-solid fa-chevron-right"></i></button>
 </section>
-
 
 <!-- ======== FEATURED PRODUCTS ======== -->
 <section class="featured-products">
     <div class="section-heading">
         <h2>
-            <?php if ($selected_category_name): ?>
+            <?php if (!empty($selected_slug)): ?>
                 <?php echo htmlspecialchars($selected_category_name); ?>
             <?php else: ?>
                 Featured <span>Products</span>
@@ -236,11 +346,9 @@ mysqli_close($conn);
         <?php if ($product_result && mysqli_num_rows($product_result) > 0): ?>
             <?php while ($product = mysqli_fetch_assoc($product_result)): ?>
                 <div class="product-card">
-                    <?php if ($product['stock'] > 0): ?>
-                        <span class="discount-badge">In Stock</span>
-                    <?php else: ?>
-                        <span class="discount-badge" style="background:#e74c3c;">Out of Stock</span>
-                    <?php endif; ?>
+                    <span class="discount-badge <?php echo ($product['stock'] > 0) ? '' : 'out'; ?>">
+                        <?php echo ($product['stock'] > 0) ? 'In Stock' : 'Out of Stock'; ?>
+                    </span>
                     <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
                     <div class="product-info">
                         <h3><?php echo htmlspecialchars($product['name']); ?></h3>
@@ -251,24 +359,22 @@ mysqli_close($conn);
                                 <span class="old-price">₹<?php echo number_format($product['price'] * 1.2, 2); ?></span>
                             <?php endif; ?>
                         </div>
-                        <small style="color:#888;">by <?php echo htmlspecialchars($product['store_name'] ?? 'Quick Basket'); ?></small>
-
-                        <form action="add-to-cart.php" method="POST" style="margin-top:10px;">
+                        <span class="seller">by <?php echo htmlspecialchars($product['store_name'] ?? 'Quick Basket'); ?></span>
+                        <form action="add-to-cart.php" method="POST">
                             <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit" class="add-to-cart-btn" <?php echo ($product['stock'] <= 0) ? 'disabled' : ''; ?>>
                                 <i class="fa-solid fa-cart-plus"></i> Add to Cart
                             </button>
                         </form>
-
-                        <a href="product-details.php?id=<?php echo $product['id']; ?>" class="btn-view" style="display:block; text-align:center; background:#f0f0f0; color:#333; padding:8px; border-radius:6px; margin-top:5px; text-decoration:none; font-size:13px;">
+                        <a href="product-details.php?id=<?php echo $product['id']; ?>" class="btn-view">
                             View Details
                         </a>
                     </div>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
-            <p style="grid-column:1/-1; text-align:center; color:#888; padding:40px;">No products available.</p>
+            <p style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:40px;">No products available.</p>
         <?php endif; ?>
     </div>
 </section>
@@ -339,7 +445,10 @@ mysqli_close($conn);
 
 <!-- ======== TESTIMONIALS ======== -->
 <section class="testimonials">
-    <div class="section-heading center-heading"><h2>What Our Customers Say</h2><p>Trusted by thousands of happy shoppers.</p></div>
+    <div class="section-heading center-heading">
+        <h2>What Our Customers Say</h2>
+        <p>Trusted by thousands of happy shoppers.</p>
+    </div>
     <div class="testimonial-container">
         <div class="testimonial-card"><img src="images/user1.jpg" alt="Customer"><h3>Rahul Sharma</h3><div class="stars">★★★★★</div><p>Amazing shopping experience. Fast delivery and excellent product quality.</p></div>
         <div class="testimonial-card"><img src="images/user2.jpg" alt="Customer"><h3>Priya Patel</h3><div class="stars">★★★★★</div><p>Great offers and secure payment system. Highly recommended.</p></div>
@@ -364,23 +473,20 @@ mysqli_close($conn);
     <div class="footer-container">
         <div class="footer-box">
             <h3>Quick Basket</h3>
-            <p>Your trusted online shopping destination for fashion, electronics, home essentials and much more.</p>
+            <p>Your trusted online shopping destination.</p>
         </div>
         <div class="footer-box">
             <h3>Quick Links</h3>
             <ul>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="categories.php">Categories</a></li>
-                <li><a href="#">Shop</a></li>
-                <li><a href="#">Offers</a></li>
+                <li><a href="deals.php">Best Deals</a></li>
             </ul>
         </div>
         <div class="footer-box">
             <h3>Customer Support</h3>
             <ul>
                 <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Track Order</a></li>
-                <li><a href="#">Returns</a></li>
                 <li><a href="#">FAQ</a></li>
             </ul>
         </div>
@@ -398,6 +504,77 @@ mysqli_close($conn);
         <p>© 2026 Quick Basket. All Rights Reserved.</p>
     </div>
 </footer>
+
+<script>
+    // ---------- HERO SLIDER ----------
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.hero-slide');
+    let dotsContainer = document.getElementById('sliderDots');
+    let autoSlideInterval;
+
+    function goToSlide(index) {
+        slides.forEach((slide, i) => {
+            slide.classList.remove('active');
+            if (dotsContainer && dotsContainer.children[i]) {
+                dotsContainer.children[i].classList.remove('active');
+            }
+        });
+
+        slides[index].classList.add('active');
+        if (dotsContainer && dotsContainer.children[index]) {
+            dotsContainer.children[index].classList.add('active');
+        }
+        currentSlide = index;
+    }
+
+    function changeSlide(direction) {
+        let newIndex = currentSlide + direction;
+        if (newIndex < 0) newIndex = slides.length - 1;
+        if (newIndex >= slides.length) newIndex = 0;
+        goToSlide(newIndex);
+        resetAutoSlide();
+    }
+
+    function goToSlideByDot(index) {
+        goToSlide(index);
+        resetAutoSlide();
+    }
+
+    function resetAutoSlide() {
+        clearInterval(autoSlideInterval);
+        autoSlideInterval = setInterval(() => {
+            changeSlide(1);
+        }, 5000);
+    }
+
+    // Initialize dots
+    if (dotsContainer) {
+        slides.forEach((slide, index) => {
+            const dot = document.createElement('span');
+            dot.className = 'dot' + (index === 0 ? ' active' : '');
+            dot.onclick = function() { goToSlideByDot(index); };
+            dotsContainer.appendChild(dot);
+        });
+    }
+
+    // Start auto-slide
+    resetAutoSlide();
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') changeSlide(-1);
+        if (e.key === 'ArrowRight') changeSlide(1);
+    });
+
+    // Pause on hover
+    const slider = document.querySelector('.hero-wrapper');
+    if (slider) {
+        slider.addEventListener('mouseenter', function() {
+            clearInterval(autoSlideInterval);
+        });
+        slider.addEventListener('mouseleave', resetAutoSlide);
+    }
+</script>
 
 </body>
 </html>

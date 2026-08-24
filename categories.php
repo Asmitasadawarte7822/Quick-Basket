@@ -83,7 +83,7 @@ if (!empty($selected_slug)) {
 
 mysqli_close($conn);
 
-// ---------- FLIPKART-STYLE CATEGORY ICONS ----------
+// ---------- CATEGORY ICONS ----------
 $category_icons = [
     'Mobiles' => 'fa-solid fa-mobile-screen',
     'Laptops' => 'fa-solid fa-laptop',
@@ -115,92 +115,85 @@ $category_icons = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         /* ============================================
-           FLIPKART-STYLE CATEGORIES PAGE
+           CATEGORIES PAGE – DASHBOARD THEME
+           White · Blue · Yellow
            ============================================ */
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
         }
 
         body {
-            background: #0a0e1a;
-            color: #e8edf5;
+            background: #f1f3f6;
+            color: #333;
             min-height: 100vh;
         }
 
-        /* ---------- Header ---------- */
+        /* ---------- Header (same as dashboard) ---------- */
         .top-header {
-            background: linear-gradient(135deg, #0a0a0a 0%, #0d1b2a 50%, #1a3a5c 100%);
+            background: #2874f0;
             padding: 14px 4%;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 20px;
             flex-wrap: wrap;
-            border-bottom: 2px solid #2874f0;
-            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
         }
         .logo h1 {
             color: #fff;
             font-size: 38px;
-            font-weight: 800;
+            font-weight: 700;
         }
-        .logo span { color: #2874f0; }
+        .logo span {
+            color: #ffd700;
+        }
         .search-box {
             flex: 1;
             display: flex;
             max-width: 700px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.08);
-            overflow: hidden;
-            transition: 0.3s;
-        }
-        .search-box:focus-within {
-            border-color: #2874f0;
-            box-shadow: 0 0 0 4px rgba(40,116,240,0.15);
         }
         .search-box input {
             width: 100%;
-            padding: 14px 20px;
+            padding: 14px;
             border: none;
-            background: transparent;
             outline: none;
+            border-radius: 4px 0 0 4px;
             font-size: 15px;
-            color: #fff;
         }
-        .search-box input::placeholder { color: #94a3b8; }
         .search-box button {
             border: none;
             padding: 14px 30px;
-            background: #2874f0;
-            color: #fff;
+            background: #ffd700;
             font-weight: 700;
             cursor: pointer;
+            border-radius: 0 4px 4px 0;
             transition: 0.3s;
         }
-        .search-box button:hover { background: #1a5bc7; }
+        .search-box button:hover {
+            background: #f5cf00;
+        }
         .header-icons {
             display: flex;
             gap: 25px;
         }
         .header-icons a {
             text-decoration: none;
-            color: #94a3b8;
-            font-size: 15px;
-            font-weight: 500;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
             transition: 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
-        .header-icons a:hover { color: #2874f0; }
-        .header-icons i { font-size: 18px; }
-        .header-icons .badge {
-            background: #2874f0;
+        .header-icons a:hover {
+            color: #ffd700;
+        }
+        .header-icons i {
+            margin-right: 8px;
+        }
+        .badge {
+            background: #ff3b30;
             color: #fff;
             border-radius: 50%;
             padding: 2px 7px;
@@ -209,15 +202,14 @@ $category_icons = [
             margin-left: 4px;
         }
 
-        /* ---------- Top Category Nav ---------- */
+        /* ---------- Category Nav (same as dashboard) ---------- */
         .category-nav {
-            background: rgba(10, 10, 10, 0.9);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(40,116,240,0.1);
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
             padding: 0;
         }
         .category-nav-inner {
-            max-width: 1280px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
             display: flex;
@@ -226,10 +218,12 @@ $category_icons = [
             align-items: center;
             min-height: 48px;
         }
-        .category-nav-inner::-webkit-scrollbar { display: none; }
+        .category-nav-inner::-webkit-scrollbar {
+            display: none;
+        }
         .category-nav-inner a {
             text-decoration: none;
-            color: #94a3b8;
+            color: #333;
             font-weight: 500;
             padding: 10px 16px;
             white-space: nowrap;
@@ -237,25 +231,32 @@ $category_icons = [
             border-bottom: 2px solid transparent;
             transition: 0.3s;
         }
-        .category-nav-inner a:hover { color: #2874f0; border-bottom-color: #2874f0; }
-        .category-nav-inner a.active { color: #2874f0; font-weight: 600; border-bottom-color: #2874f0; }
+        .category-nav-inner a:hover {
+            color: #2874f0;
+            border-bottom-color: #ffd700;
+        }
+        .category-nav-inner a.active {
+            color: #2874f0;
+            font-weight: 600;
+            border-bottom-color: #2874f0;
+        }
 
         /* ---------- Main Layout ---------- */
         .categories-wrap {
-            max-width: 1280px;
+            max-width: 1200px;
             margin: 30px auto;
             padding: 0 20px;
             display: grid;
-            grid-template-columns: 240px 1fr;
-            gap: 30px;
+            grid-template-columns: 260px 1fr;
+            gap: 24px;
         }
 
-        /* ---------- Sidebar (Flipkart Style) ---------- */
+        /* ---------- Sidebar (white, like dashboard) ---------- */
         .category-sidebar {
-            background: rgba(255,255,255,0.03);
+            background: #fff;
             border-radius: 12px;
             padding: 16px 0;
-            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
             height: fit-content;
             position: sticky;
             top: 20px;
@@ -264,8 +265,8 @@ $category_icons = [
             padding: 0 20px 12px;
             font-size: 14px;
             font-weight: 700;
-            color: #fff;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            color: #2874f0;
+            border-bottom: 1px solid #e5e5e5;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -278,18 +279,18 @@ $category_icons = [
             align-items: center;
             gap: 10px;
             padding: 10px 20px;
-            color: #94a3b8;
+            color: #555;
             text-decoration: none;
             transition: 0.3s;
             border-left: 3px solid transparent;
         }
         .category-sidebar .category-link:hover {
-            background: rgba(40,116,240,0.06);
-            color: #fff;
-            border-left-color: #2874f0;
+            background: #fff3cd;
+            color: #2874f0;
+            border-left-color: #ffd700;
         }
         .category-sidebar .category-link.active {
-            background: rgba(40,116,240,0.1);
+            background: #e6f0ff;
             color: #2874f0;
             border-left-color: #2874f0;
             font-weight: 600;
@@ -297,7 +298,7 @@ $category_icons = [
         .category-sidebar .category-link .cat-icon {
             width: 28px;
             font-size: 16px;
-            color: #64748b;
+            color: #888;
             text-align: center;
         }
         .category-sidebar .category-link:hover .cat-icon {
@@ -309,18 +310,18 @@ $category_icons = [
         .category-sidebar .category-link .count {
             margin-left: auto;
             font-size: 12px;
-            color: #64748b;
+            color: #888;
         }
         .category-sidebar .category-link:hover .count {
-            color: #94a3b8;
+            color: #555;
         }
 
-        /* ---------- Products Area ---------- */
+        /* ---------- Products Area (white) ---------- */
         .products-area {
-            background: rgba(255,255,255,0.02);
+            background: #fff;
             border-radius: 12px;
-            padding: 20px;
-            border: 1px solid rgba(255,255,255,0.04);
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
         }
         .products-header {
             display: flex;
@@ -328,18 +329,22 @@ $category_icons = [
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid #e5e5e5;
         }
         .products-header h2 {
             font-size: 20px;
             font-weight: 700;
-            color: #fff;
+            color: #222;
         }
         .products-header h2 span {
             color: #2874f0;
         }
+        .products-header h2 i {
+            color: #2874f0;
+            margin-right: 6px;
+        }
         .products-header .product-count {
-            color: #94a3b8;
+            color: #888;
             font-size: 14px;
         }
 
@@ -348,17 +353,20 @@ $category_icons = [
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 20px;
         }
+
+        /* ---------- Product Card (white, blue border) ---------- */
         .product-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: #fff;
+            border: 1px solid #e5e5e5;
             border-radius: 12px;
             overflow: hidden;
-            transition: 0.4s;
+            transition: 0.3s;
+            position: relative;
         }
         .product-card:hover {
             transform: translateY(-4px);
-            border-color: rgba(40,116,240,0.3);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            border-color: #2874f0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.06);
         }
         .product-card .badge {
             position: absolute;
@@ -370,16 +378,21 @@ $category_icons = [
             font-weight: 600;
             z-index: 2;
         }
-        .badge-in { background: rgba(52,211,153,0.9); color: #0a0e1a; }
-        .badge-out { background: rgba(239,68,68,0.9); color: #fff; }
+        .badge-in {
+            background: #ffd700;
+            color: #003366;
+        }
+        .badge-out {
+            background: #e5e5e5;
+            color: #888;
+        }
         .product-card .image-wrap {
-            background: rgba(0,0,0,0.2);
+            background: #f8f9fa;
             padding: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 180px;
-            position: relative;
         }
         .product-card .image-wrap img {
             max-width: 100%;
@@ -387,14 +400,16 @@ $category_icons = [
             object-fit: contain;
             transition: 0.3s;
         }
-        .product-card:hover .image-wrap img { transform: scale(1.04); }
+        .product-card:hover .image-wrap img {
+            transform: scale(1.04);
+        }
         .product-card .info {
             padding: 16px 18px 18px;
         }
         .product-card .info h3 {
             font-size: 14px;
             font-weight: 600;
-            color: #fff;
+            color: #222;
             margin-bottom: 4px;
             line-height: 1.3;
             display: -webkit-box;
@@ -404,11 +419,11 @@ $category_icons = [
         }
         .product-card .info .seller {
             font-size: 12px;
-            color: #94a3b8;
+            color: #888;
             margin-bottom: 4px;
         }
         .product-card .info .rating {
-            color: #fbbf24;
+            color: #ffd700;
             font-size: 13px;
             margin-bottom: 6px;
         }
@@ -426,7 +441,7 @@ $category_icons = [
         }
         .product-card .info .price-wrap .old {
             font-size: 13px;
-            color: #94a3b8;
+            color: #888;
             text-decoration: line-through;
         }
         .product-card .info .btn-group {
@@ -446,27 +461,33 @@ $category_icons = [
             cursor: pointer;
             transition: 0.3s;
         }
-        .product-card .info .btn-group .btn-cart:hover { background: #1a5bc7; }
+        .product-card .info .btn-group .btn-cart:hover {
+            background: #1a5bc7;
+        }
         .product-card .info .btn-group .btn-cart:disabled {
-            background: rgba(255,255,255,0.1);
-            color: #94a3b8;
+            background: #e5e5e5;
+            color: #888;
+            cursor: not-allowed;
         }
         .product-card .info .btn-group .btn-buy {
             flex: 1;
             padding: 8px;
             border: none;
             border-radius: 6px;
-            background: #fb641b;
-            color: #fff;
+            background: #ffd700;
+            color: #003366;
             font-weight: 600;
             font-size: 12px;
             cursor: pointer;
             transition: 0.3s;
         }
-        .product-card .info .btn-group .btn-buy:hover { background: #e55a12; }
+        .product-card .info .btn-group .btn-buy:hover {
+            background: #f5cf00;
+        }
         .product-card .info .btn-group .btn-buy:disabled {
-            background: rgba(255,255,255,0.1);
-            color: #94a3b8;
+            background: #e5e5e5;
+            color: #888;
+            cursor: not-allowed;
         }
         .product-card .info .btn-view {
             display: block;
@@ -474,39 +495,40 @@ $category_icons = [
             margin-top: 4px;
             padding: 4px;
             border-radius: 6px;
-            background: rgba(255,255,255,0.04);
-            color: #94a3b8;
+            background: #f8f9fa;
+            color: #555;
             text-decoration: none;
             font-size: 12px;
             font-weight: 500;
             transition: 0.3s;
         }
         .product-card .info .btn-view:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
+            background: #e6f0ff;
+            color: #2874f0;
         }
 
+        /* ---------- Empty State ---------- */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             grid-column: 1/-1;
-            background: rgba(255,255,255,0.02);
+            background: #f8f9fa;
             border-radius: 12px;
-            border: 1px dashed rgba(255,255,255,0.06);
+            border: 1px dashed #e5e5e5;
         }
         .empty-state i {
             font-size: 60px;
-            color: rgba(255,255,255,0.06);
+            color: #ddd;
             display: block;
             margin-bottom: 16px;
         }
         .empty-state h3 {
             font-size: 24px;
-            color: #fff;
+            color: #222;
             margin-bottom: 8px;
         }
         .empty-state p {
-            color: #94a3b8;
+            color: #888;
             margin-bottom: 20px;
         }
         .empty-state .btn-shop {
@@ -519,55 +541,88 @@ $category_icons = [
             font-weight: 600;
             transition: 0.3s;
         }
-        .empty-state .btn-shop:hover { background: #1a5bc7; }
-
-        /* ---------- Footer ---------- */
-        .footer {
-            background: linear-gradient(180deg, #0a0a0a, #0d1b2a);
-            margin-top: 40px;
-            border-top: 2px solid rgba(40,116,240,0.15);
-            color: #fff;
-            padding: 40px 20px 20px;
+        .empty-state .btn-shop:hover {
+            background: #1a5bc7;
         }
-        .footer-inner {
-            max-width: 1200px;
-            margin: 0 auto;
+
+        /* ---------- Footer (same as dashboard) ---------- */
+        .footer {
+            background: #172337;
+            color: #fff;
+            margin-top: 30px;
+        }
+        .footer-container {
+            width: 95%;
+            margin: auto;
+            padding: 50px 0;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 30px;
         }
-        .footer-inner .footer-box h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
+        .footer-box h3 {
+            margin-bottom: 18px;
         }
-        .footer-inner .footer-box p,
-        .footer-inner .footer-box a {
-            color: #94a3b8;
-            font-size: 14px;
-            line-height: 1.8;
+        .footer-box p {
+            color: #ccc;
+            line-height: 1.7;
+        }
+        .footer-box ul {
+            list-style: none;
+        }
+        .footer-box ul li {
+            margin-bottom: 10px;
+        }
+        .footer-box ul li a {
+            color: #ccc;
             text-decoration: none;
-            display: block;
-            padding: 4px 0;
             transition: 0.3s;
         }
-        .footer-inner .footer-box a:hover { color: #2874f0; }
+        .footer-box ul li a:hover {
+            color: #ffd700;
+        }
+        .social-icons {
+            display: flex;
+            gap: 12px;
+        }
+        .social-icons a {
+            width: 40px;
+            height: 40px;
+            background: #2874f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .social-icons a:hover {
+            background: #ffd700;
+            color: #000;
+        }
         .footer-bottom {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            border-top: 1px solid rgba(255,255,255,0.1);
             text-align: center;
-            color: #94a3b8;
-            font-size: 13px;
+            padding: 20px;
+            color: #ccc;
         }
 
         /* ---------- Responsive ---------- */
         @media (max-width: 992px) {
-            .top-header { flex-direction: column; }
-            .search-box { width: 100%; max-width: 100%; }
-            .header-icons { justify-content: center; flex-wrap: wrap; }
-            .categories-wrap { grid-template-columns: 1fr; }
+            .top-header {
+                flex-direction: column;
+            }
+            .search-box {
+                width: 100%;
+                max-width: 100%;
+            }
+            .header-icons {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .categories-wrap {
+                grid-template-columns: 1fr;
+            }
             .category-sidebar {
                 position: static;
                 display: flex;
@@ -576,35 +631,65 @@ $category_icons = [
                 padding: 12px;
                 border: none;
                 background: transparent;
+                box-shadow: none;
             }
-            .category-sidebar .sidebar-title { display: none; }
+            .category-sidebar .sidebar-title {
+                display: none;
+            }
             .category-sidebar .category-link {
                 padding: 6px 14px;
                 border-left: none;
                 border-radius: 50px;
-                background: rgba(255,255,255,0.04);
+                background: #fff;
+                border: 1px solid #e5e5e5;
                 font-size: 13px;
             }
             .category-sidebar .category-link.active {
                 background: #2874f0;
                 color: #fff;
                 border-left: none;
+                border-color: #2874f0;
             }
-            .category-sidebar .category-link .cat-icon { display: none; }
-            .category-sidebar .category-link .count { display: none; }
-            .products-grid { grid-template-columns: 1fr 1fr; }
+            .category-sidebar .category-link .cat-icon {
+                display: none;
+            }
+            .category-sidebar .category-link .count {
+                display: none;
+            }
+            .products-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
         @media (max-width: 768px) {
-            .products-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
-            .product-card .info .btn-group { flex-direction: column; }
+            .products-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+            .product-card .info .btn-group {
+                flex-direction: column;
+            }
         }
         @media (max-width: 576px) {
-            .products-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-            .product-card .image-wrap { min-height: 130px; padding: 14px; }
-            .product-card .image-wrap img { max-height: 110px; }
-            .product-card .info { padding: 12px; }
-            .product-card .info h3 { font-size: 13px; }
-            .product-card .info .price-wrap .current { font-size: 16px; }
+            .products-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .product-card .image-wrap {
+                min-height: 130px;
+                padding: 14px;
+            }
+            .product-card .image-wrap img {
+                max-height: 110px;
+            }
+            .product-card .info {
+                padding: 12px;
+            }
+            .product-card .info h3 {
+                font-size: 13px;
+            }
+            .product-card .info .price-wrap .current {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -615,14 +700,14 @@ $category_icons = [
     <div class="logo">
         <h1>Quick<span>Basket</span></h1>
     </div>
-    <div class="search-box">
-        <input type="text" placeholder="Search for Products, Brands and More">
-        <button>SEARCH</button>
-    </div>
+    <form action="search-results.php" method="GET" class="search-box">
+        <input type="text" name="query" placeholder="Search for Products, Brands and More..." autocomplete="off">
+        <button type="submit"><i class="fa-solid fa-magnifying-glass"></i> SEARCH</button>
+    </form>
     <div class="header-icons">
         <?php if ($is_logged_in && $user_name): ?>
             <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
-            <a href="logout.php" style="color:#f87171;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+            <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
         <?php else: ?>
             <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
         <?php endif; ?>
@@ -651,7 +736,7 @@ $category_icons = [
 <!-- ======== MAIN: SIDEBAR + PRODUCTS ======== -->
 <div class="categories-wrap">
 
-    <!-- LEFT: Sidebar (Flipkart Style) -->
+    <!-- LEFT: Sidebar -->
     <aside class="category-sidebar">
         <div class="sidebar-title"><i class="fa-regular fa-folder-open"></i> Categories</div>
         <a href="categories.php" class="category-link <?php echo empty($selected_slug) ? 'active' : ''; ?>">
@@ -745,28 +830,34 @@ $category_icons = [
 
 <!-- ======== FOOTER ======== -->
 <footer class="footer">
-    <div class="footer-inner">
+    <div class="footer-container">
         <div class="footer-box">
             <h3>Quick Basket</h3>
             <p>Your trusted online shopping destination.</p>
         </div>
         <div class="footer-box">
             <h3>Quick Links</h3>
-            <a href="index.php">Home</a>
-            <a href="deals.php">Best Deals</a>
-            <a href="categories.php">Categories</a>
+            <ul>
+                <li><a href="index.php">Home</a></li>
+                <li><a href="deals.php">Best Deals</a></li>
+                <li><a href="categories.php">Categories</a></li>
+            </ul>
         </div>
         <div class="footer-box">
             <h3>Customer Support</h3>
-            <a href="#">Contact Us</a>
-            <a href="#">FAQ</a>
+            <ul>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">FAQ</a></li>
+                <li><a href="#">Returns</a></li>
+            </ul>
         </div>
         <div class="footer-box">
             <h3>Follow Us</h3>
-            <div style="display:flex; gap:12px; margin-top:8px;">
-                <a href="#" style="width:38px; height:38px; background:rgba(40,116,240,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2874f0; transition:0.3s;"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" style="width:38px; height:38px; background:rgba(40,116,240,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2874f0; transition:0.3s;"><i class="fab fa-instagram"></i></a>
-                <a href="#" style="width:38px; height:38px; background:rgba(40,116,240,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2874f0; transition:0.3s;"><i class="fab fa-twitter"></i></a>
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-linkedin-in"></i></a>
             </div>
         </div>
     </div>
