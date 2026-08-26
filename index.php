@@ -135,7 +135,7 @@ mysqli_close($conn);
     <div class="header-icons">
         <?php if ($is_logged_in): ?>
             <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
-            <a href="logout.php" style="color:#f87171;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+            <!-- <a href="logout.php" style="color:#f87171;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a> -->
         <?php else: ?>
             <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
         <?php endif; ?>
@@ -197,15 +197,15 @@ mysqli_close($conn);
                         </div>
                         <p class="hero-desc">On Fashion, Electronics, Mobiles,<br>Home & Living and More</p>
                         <div class="hero-buttons">
-                            <a href="#" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
-                            <a href="#" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Explore More</a>
+                            <a href="categories.php" class="btn-shop-now"><span>SHOP NOW</span> <i class="fa-solid fa-arrow-right"></i></a>
+                            <a href="category-products.php" class="btn-explore"><i class="fa-regular fa-play-circle"></i> Explore More</a>
                         </div>
                     </div>
                     <div class="hero-right">
-                        <div class="floating-image img-1"><img src="images/mobile.png" alt="Mobile"><span class="price-tag">₹11,999*</span></div>
+                        <div class="floating-image img-1"><img src="images/mobile phone.jpg" alt="Mobile"><span class="price-tag">₹11,999*</span></div>
                         <div class="floating-image img-2"><img src="images/laptop.png" alt="Laptop"><span class="price-tag">₹59,999*</span></div>
-                        <div class="floating-image img-3"><img src="images/watch.png" alt="Watch"><span class="price-tag">₹2,499*</span></div>
-                        <div class="floating-image img-4"><img src="images/shoes.png" alt="Shoes"><span class="price-tag">₹1,799*</span></div>
+                        <div class="floating-image img-3"><img src=images/whatch.jpg alt="Watch"><span class="price-tag">₹2,499*</span></div>
+                        <div class="floating-image img-4"><img src=images/shoes.jpg alt="Shoes"><span class="price-tag">₹1,799*</span></div>
                         <div class="hero-glow"></div>
                     </div>
                 </div>
@@ -231,7 +231,7 @@ mysqli_close($conn);
                     <div class="hero-right">
                         <div class="floating-image img-1"><img src="images/laptop.png" alt="Laptop"><span class="price-tag">₹39,999*</span></div>
                         <div class="floating-image img-2"><img src="images/headphone.png" alt="Headphone"><span class="price-tag">₹1,499*</span></div>
-                        <div class="floating-image img-3"><img src="images/mobile.png" alt="Mobile"><span class="price-tag">₹15,999*</span></div>
+                        <div class="floating-image img-3"><img src="images/mobile phone.jpg" alt="Mobile"><span class="price-tag">₹15,999*</span></div>
                         <div class="hero-glow"></div>
                     </div>
                 </div>
@@ -255,9 +255,9 @@ mysqli_close($conn);
                         </div>
                     </div>
                     <div class="hero-right">
-                        <div class="floating-image img-1"><img src="images/shoes.png" alt="Shoes"><span class="price-tag">₹1,299*</span></div>
-                        <div class="floating-image img-2"><img src="images/fashion.png" alt="Fashion"><span class="price-tag">₹799*</span></div>
-                        <div class="floating-image img-3"><img src="images/watch.png" alt="Watch"><span class="price-tag">₹1,999*</span></div>
+                        <div class="floating-image img-1"><img src=images/shoes.jpg alt="Shoes"><span class="price-tag">₹1,299*</span></div>
+                        <div class="floating-image img-2"><img src=images/fashion.png alt="Fashion"><span class="price-tag">₹799*</span></div>
+                        <div class="floating-image img-3"><img src=images/whatch.jpg alt="Watch"><span class="price-tag">₹1,999*</span></div>
                         <div class="hero-glow"></div>
                     </div>
                 </div>
@@ -281,9 +281,9 @@ mysqli_close($conn);
                         </div>
                     </div>
                     <div class="hero-right">
-                        <div class="floating-image img-1"><img src="images/furniture.png" alt="Furniture"><span class="price-tag">₹9,999*</span></div>
-                        <div class="floating-image img-2"><img src="images/couch.png" alt="Couch"><span class="price-tag">₹14,999*</span></div>
-                        <div class="floating-image img-3"><img src="images/light.png" alt="Light"><span class="price-tag">₹499*</span></div>
+                        <div class="floating-image img-1"><img src=images/farniture.png alt="Furniture"><span class="price-tag">₹9,999*</span></div>
+                        <div class="floating-image img-2"><img src=images/couch.png alt="couch"><span class="price-tag">₹14,999*</span></div>
+                        <div class="floating-image img-3"><img src=images/light.png alt="Light"><span class="price-tag">₹499*</span></div>
                         <div class="hero-glow"></div>
                     </div>
                 </div>
@@ -307,9 +307,9 @@ mysqli_close($conn);
                         </div>
                     </div>
                     <div class="hero-right">
-                        <div class="floating-image img-1"><img src="images/mobile.png" alt="Mobile"><span class="price-tag">₹10,999*</span></div>
-                        <div class="floating-image img-2"><img src="images/headphone.png" alt="Headphone"><span class="price-tag">₹1,299*</span></div>
-                        <div class="floating-image img-3"><img src="images/gaming.png" alt="Gaming"><span class="price-tag">₹2,499*</span></div>
+                        <div class="floating-image img-1"><img src="images/mobile phone.jpg" alt="Mobile"><span class="price-tag">₹10,999*</span></div>
+                        <div class="floating-image img-2"><img src=images/headphone.png alt="Headphone"><span class="price-tag">₹1,299*</span></div>
+                        <div class="floating-image img-3"><img src=images/gaming.png alt="Gaming"><span class="price-tag">₹2,499*</span></div>
                         <div class="hero-glow"></div>
                     </div>
                 </div>
@@ -392,7 +392,7 @@ mysqli_close($conn);
                 <p>Up To 40% OFF</p>
                 <a href="deals.php?category=mobiles">Shop Now</a>
             </div>
-            <img src="images/mobile.png" alt="Mobile">
+            <img src=images/mobile phone.jpg alt="Mobile">
         </div>
         <div class="deal-card deal-orange">
             <div class="deal-content">

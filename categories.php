@@ -707,7 +707,7 @@ $category_icons = [
     <div class="header-icons">
         <?php if ($is_logged_in && $user_name): ?>
             <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
-            <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+            <!-- <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a> -->
         <?php else: ?>
             <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
         <?php endif; ?>

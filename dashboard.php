@@ -7,6 +7,23 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
+// ---------- USER LOGIN ----------
+$user_name = null;
+$is_logged_in = false;
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+    $sql = "SELECT name FROM users WHERE id = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $user_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    if ($user = mysqli_fetch_assoc($result)) {
+        $user_name = htmlspecialchars($user['name']);
+        $is_logged_in = true;
+    }
+    mysqli_stmt_close($stmt);
+}
+
 
 $user_id = $_SESSION['user_id'];
 
@@ -653,14 +670,21 @@ mysqli_close($conn);
     <div class="logo">
         <h1>Quick<span>Basket</span></h1>
     </div>
-    <div class="search-box">
-        <input type="text" placeholder="Search for Products, Brands and More">
-        <button>SEARCH</button>
-    </div>
+    <form action="search-results.php" method="GET" class="search-box">
+    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+    <input type="text" name="query" placeholder="Search for Products, Brands and More..." autocomplete="off">
+    <button type="submit"><i class="fa-solid fa-magnifying-glass"></i> SEARCH</button>
+</form>
     <div class="header-icons">
-        <a href="index.php"><i class="fa-solid fa-house"></i> Home</a>
+        <?php if ($is_logged_in): ?>
+            <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
+            <!-- <a href="logout.php" style="color:#f87171;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a> -->
+        <?php else: ?>
+            <a href="login.php"><i class="fa-regular fa-user"></i> Login</a>
+        <?php endif; ?>
+        <!-- <a href="index.php"><i class="fa-solid fa-house"></i> Home</a>
         <a href="deals.php"><i class="fa-solid fa-fire"></i> Best Deals</a>
-        <a href="categories.php"><i class="fa-regular fa-folder-open"></i> Categories</a>
+        <a href="categories.php"><i class="fa-regular fa-folder-open"></i> Categories</a> -->
         <a href="cart.php"><i class="fa-solid fa-cart-shopping"></i> Cart <span class="badge"><?php echo $cart_count; ?></span></a>
         <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
     </div>
