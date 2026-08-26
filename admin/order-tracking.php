@@ -89,17 +89,12 @@ mysqli_close($conn);
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* ============================================
-           ORDER TRACKING - WHITE, BLUE & YELLOW THEME
-           ============================================ */
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', 'Segoe UI', sans-serif;
         }
-
         body {
             background: #f1f3f6;
             color: #333;
@@ -122,9 +117,7 @@ mysqli_close($conn);
             font-size: 32px;
             font-weight: 700;
         }
-        .logo span {
-            color: #ffd700;
-        }
+        .logo span { color: #ffd700; }
         .search-box {
             flex: 1;
             display: flex;
@@ -214,7 +207,6 @@ mysqli_close($conn);
             padding: 0 20px;
         }
 
-        /* ---------- Header ---------- */
         .tracking-header {
             background: #fff;
             padding: 20px 24px;
@@ -231,9 +223,7 @@ mysqli_close($conn);
             font-size: 22px;
             color: #222;
         }
-        .tracking-header h2 i {
-            color: #2874f0;
-        }
+        .tracking-header h2 i { color: #2874f0; }
         .tracking-header .order-status {
             padding: 6px 20px;
             border-radius: 30px;
@@ -241,10 +231,7 @@ mysqli_close($conn);
             font-size: 14px;
             color: #fff;
         }
-        .tracking-header .order-date {
-            color: #888;
-            font-size: 14px;
-        }
+        .tracking-header .order-date { color: #888; font-size: 14px; }
         .tracking-header a {
             color: #2874f0;
             text-decoration: none;
@@ -273,10 +260,7 @@ mysqli_close($conn);
             font-weight: 700;
             color: #2874f0;
         }
-        .tracking-timeline .estimated .label {
-            color: #888;
-            font-size: 14px;
-        }
+        .tracking-timeline .estimated .label { color: #888; font-size: 14px; }
 
         /* ---------- Progress Steps ---------- */
         .tracking-steps {
@@ -333,8 +317,6 @@ mysqli_close($conn);
             text-align: center;
             margin-top: 2px;
         }
-
-        /* Active / Completed Steps */
         .tracking-steps .step.completed .step-icon {
             background: #27ae60;
             border-color: #27ae60;
@@ -345,18 +327,12 @@ mysqli_close($conn);
             box-shadow: 0 0 0 8px rgba(40,116,240,0.15);
             animation: pulse 2s infinite;
         }
-        .tracking-steps .step.active .step-label {
-            color: #2874f0;
-            font-weight: 600;
-        }
+        .tracking-steps .step.active .step-label { color: #2874f0; font-weight: 600; }
         .tracking-steps .step.cancelled .step-icon {
             background: #e74c3c;
             border-color: #e74c3c;
         }
-        .tracking-steps .step.cancelled .step-label {
-            color: #e74c3c;
-            font-weight: 600;
-        }
+        .tracking-steps .step.cancelled .step-label { color: #e74c3c; font-weight: 600; }
 
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(40,116,240,0.2); }
@@ -364,7 +340,6 @@ mysqli_close($conn);
             100% { box-shadow: 0 0 0 0 rgba(40,116,240,0); }
         }
 
-        /* Progress bar fill */
         .tracking-steps .progress-fill {
             position: absolute;
             top: 32px;
@@ -398,16 +373,8 @@ mysqli_close($conn);
             border-bottom: 1px solid #eee;
             padding-bottom: 8px;
         }
-        .detail-card h4 i {
-            color: #2874f0;
-            margin-right: 6px;
-        }
-        .detail-card p {
-            font-size: 14px;
-            color: #555;
-            line-height: 1.8;
-            margin: 4px 0;
-        }
+        .detail-card h4 i { color: #2874f0; margin-right: 6px; }
+        .detail-card p { font-size: 14px; color: #555; line-height: 1.8; margin: 4px 0; }
         .detail-card .label { color: #888; }
         .detail-card .value { color: #222; font-weight: 500; }
 
@@ -420,10 +387,7 @@ mysqli_close($conn);
             box-shadow: 0 2px 10px rgba(0,0,0,0.04);
             margin-bottom: 20px;
         }
-        .items-table-wrap table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+        .items-table-wrap table { width: 100%; border-collapse: collapse; }
         .items-table-wrap th {
             background: #f8f9fa;
             padding: 12px 18px;
@@ -452,23 +416,15 @@ mysqli_close($conn);
             padding: 4px;
             border: 1px solid #eee;
         }
-        .items-table-wrap .product-cell .pname {
-            font-weight: 500;
-            color: #222;
-        }
+        .items-table-wrap .product-cell .pname { font-weight: 500; color: #222; }
         .items-table-wrap .total-row td {
             font-weight: 700;
             font-size: 16px;
             padding-top: 14px;
             border-top: 2px solid #2874f0;
         }
-        .items-table-wrap .total-row .label {
-            color: #888;
-            font-weight: 400;
-        }
-        .items-table-wrap .total-row .value {
-            color: #2874f0;
-        }
+        .items-table-wrap .total-row .label { color: #888; font-weight: 400; }
+        .items-table-wrap .total-row .value { color: #2874f0; }
 
         /* ---------- Actions ---------- */
         .tracking-actions {
@@ -490,18 +446,13 @@ mysqli_close($conn);
             color: #555;
             border: 1px solid #ddd;
         }
-        .btn-back:hover {
-            background: #e5e7eb;
-            color: #333;
-        }
+        .btn-back:hover { background: #e5e7eb; color: #333; }
         .btn-cancel {
             background: #fee2e2;
             color: #991b1b;
             border: 1px solid #fecaca;
         }
-        .btn-cancel:hover {
-            background: #fecaca;
-        }
+        .btn-cancel:hover { background: #fecaca; }
 
         /* ---------- Footer ---------- */
         .footer {
@@ -518,12 +469,7 @@ mysqli_close($conn);
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 30px;
         }
-        .footer-box h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #fff;
-        }
+        .footer-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #fff; }
         .footer-box p, .footer-box a {
             color: #ccc;
             font-size: 14px;
@@ -549,10 +495,7 @@ mysqli_close($conn);
             color: #fff;
             transition: 0.3s;
         }
-        .social-icons a:hover {
-            background: #ffd700;
-            color: #000;
-        }
+        .social-icons a:hover { background: #ffd700; color: #000; }
         .footer-bottom {
             max-width: 1200px;
             margin: 0 auto;
@@ -592,7 +535,6 @@ mysqli_close($conn);
 </head>
 <body>
 
-<!-- ======== HEADER ======== -->
 <header class="top-header">
     <div class="logo">
         <h1>Quick<span>Basket</span></h1>
@@ -609,7 +551,6 @@ mysqli_close($conn);
     </div>
 </header>
 
-<!-- ======== CATEGORY NAV ======== -->
 <nav class="category-nav">
     <div class="category-nav-inner">
         <a href="index.php">Home</a>
@@ -619,10 +560,8 @@ mysqli_close($conn);
     </div>
 </nav>
 
-<!-- ======== TRACKING CONTENT ======== -->
 <div class="tracking-wrap">
 
-    <!-- Tracking Header -->
     <div class="tracking-header">
         <div>
             <h2><i class="fa-solid fa-location-dot"></i> Track Order #<?php echo str_pad($order_id, 6, '0', STR_PAD_LEFT); ?></h2>
@@ -643,7 +582,6 @@ mysqli_close($conn);
     </div>
 
     <?php if ($is_cancelled): ?>
-        <!-- Cancelled Order -->
         <div class="tracking-timeline" style="text-align:center; padding:40px;">
             <i class="fa-regular fa-circle-xmark" style="font-size:60px; color:#e74c3c; display:block; margin-bottom:16px;"></i>
             <h3 style="color:#222; font-size:24px; margin-bottom:8px;">Order Cancelled</h3>
@@ -654,47 +592,39 @@ mysqli_close($conn);
         </div>
     <?php else: ?>
 
-        <!-- Tracking Timeline -->
         <div class="tracking-timeline">
             <div class="estimated">
                 <span class="label">Estimated Delivery</span><br>
                 <span class="date"><i class="fa-regular fa-calendar"></i> <?php echo $delivery_date; ?></span>
             </div>
 
-            <!-- Steps -->
             <div class="tracking-steps" style="position:relative;">
-                <!-- Progress Bar Fill -->
                 <div class="progress-fill" style="width: <?php echo min(($current_step - 1) * 25, 100); ?>%;"></div>
 
-                <!-- Step 1: Order Placed -->
                 <div class="step <?php echo ($current_step >= 1) ? 'completed' : ''; ?> <?php echo ($current_step == 1 && !$is_cancelled) ? 'active' : ''; ?>">
                     <div class="step-icon"><i class="fa-regular fa-clock"></i></div>
                     <span class="step-label">Order Placed</span>
                     <span class="step-date"><?php echo date('d M', strtotime($order['order_date'])); ?></span>
                 </div>
 
-                <!-- Step 2: Confirmed -->
                 <div class="step <?php echo ($current_step >= 2) ? 'completed' : ''; ?> <?php echo ($current_step == 2) ? 'active' : ''; ?>">
                     <div class="step-icon"><i class="fa-regular fa-circle-check"></i></div>
                     <span class="step-label">Confirmed</span>
                     <span class="step-date"><?php echo ($current_step >= 2) ? date('d M', strtotime($order['order_date'] . ' + 1 day')) : 'Pending'; ?></span>
                 </div>
 
-                <!-- Step 3: Shipped -->
                 <div class="step <?php echo ($current_step >= 3) ? 'completed' : ''; ?> <?php echo ($current_step == 3) ? 'active' : ''; ?>">
                     <div class="step-icon"><i class="fa-solid fa-truck"></i></div>
                     <span class="step-label">Shipped</span>
                     <span class="step-date"><?php echo ($current_step >= 3) ? date('d M', strtotime($order['order_date'] . ' + 2 days')) : 'Pending'; ?></span>
                 </div>
 
-                <!-- Step 4: On the Way -->
                 <div class="step <?php echo ($current_step >= 4) ? 'completed' : ''; ?> <?php echo ($current_step == 4) ? 'active' : ''; ?>">
                     <div class="step-icon"><i class="fa-solid fa-truck-fast"></i></div>
                     <span class="step-label">On the Way</span>
                     <span class="step-date"><?php echo ($current_step >= 4) ? date('d M', strtotime($order['order_date'] . ' + 3 days')) : 'Pending'; ?></span>
                 </div>
 
-                <!-- Step 5: Delivered -->
                 <div class="step <?php echo ($current_step >= 5) ? 'completed' : ''; ?> <?php echo ($current_step == 5) ? 'active' : ''; ?>">
                     <div class="step-icon"><i class="fa-regular fa-circle-check"></i></div>
                     <span class="step-label">Delivered</span>
@@ -703,7 +633,6 @@ mysqli_close($conn);
             </div>
         </div>
 
-        <!-- Order Details -->
         <div class="order-details-grid">
             <div class="detail-card">
                 <h4><i class="fa-regular fa-user"></i> Customer</h4>
@@ -722,16 +651,10 @@ mysqli_close($conn);
             </div>
         </div>
 
-        <!-- Items Table -->
         <div class="items-table-wrap">
             <table>
                 <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Price</th>
-                        <th>Qty</th>
-                        <th>Total</th>
-                    </tr>
+                    <tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th></tr>
                 </thead>
                 <tbody>
                     <?php if (!empty($order_items)): ?>
@@ -759,7 +682,6 @@ mysqli_close($conn);
             </table>
         </div>
 
-        <!-- Actions -->
         <div class="tracking-actions">
             <a href="orders.php" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Orders</a>
             <?php if ($current_status == 'pending' || $current_status == 'confirmed'): ?>
@@ -776,7 +698,6 @@ mysqli_close($conn);
 
 </div>
 
-<!-- ======== FOOTER ======== -->
 <footer class="footer">
     <div class="footer-container">
         <div class="footer-box">
