@@ -508,7 +508,7 @@ $empty_stars = 5 - $full_stars - ($half_star ? 1 : 0);
     <div style="color:#fff; display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
         <?php if ($is_logged_in && $user_name): ?>
             <a href="dashboard.php" style="color:#fff; text-decoration:none;"><i class="fa-regular fa-user"></i> <?php echo $user_name; ?></a>
-            <a href="logout.php" style="color:#ffd700; text-decoration:none;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+            
         <?php else: ?>
             <a href="login.php" style="color:#fff; text-decoration:none;"><i class="fa-regular fa-user"></i> Login</a>
         <?php endif; ?>
