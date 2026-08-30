@@ -1,0 +1,28 @@
+[27-Aug-2026 10:45:57 Europe/Berlin] PHP Warning:  require_once(../PHPMailer/src/Exception.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:45:57 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../PHPMailer/src/Exception.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php:18
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:46:14 Europe/Berlin] PHP Warning:  require_once(../PHPMailer/src/Exception.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:46:14 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../PHPMailer/src/Exception.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php:18
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:46:37 Europe/Berlin] PHP Warning:  require_once(../PHPMailer/src/Exception.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:46:37 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../PHPMailer/src/Exception.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php:18
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:53:30 Europe/Berlin] PHP Warning:  require_once(../PHPMailer/src/Exception.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 10:53:30 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../PHPMailer/src/Exception.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php:18
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 18
+[27-Aug-2026 11:05:03 Europe/Berlin] PHPMailer Error: SMTP Error: Could not authenticate.
+[27-Aug-2026 11:05:05 Europe/Berlin] PHP Warning:  mail(): Failed to connect to mailserver at &quot;localhost&quot; port 25, verify your &quot;SMTP&quot; and &quot;smtp_port&quot; setting in php.ini or use ini_set() in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 210
+[27-Aug-2026 11:34:57 Europe/Berlin] PHPMailer Error: SMTP Error: Could not authenticate.
+[27-Aug-2026 11:35:10 Europe/Berlin] PHPMailer Error: SMTP Error: Could not authenticate.
+[30-Aug-2026 09:34:18 Europe/Berlin] PHP Fatal error:  Uncaught Error: Attempt to assign property "Username" on null in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php:22
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\Quick Basket\admin\update-order-ajax.php on line 22

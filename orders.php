@@ -61,10 +61,6 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* ============================================
-           ORDERS - BLUE, WHITE & YELLOW THEME
-           ============================================ */
-
         * {
             margin: 0;
             padding: 0;
@@ -348,6 +344,24 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             color: #888;
             font-weight: 400;
             font-size: 16px;
+        }
+
+        .btn-track {
+            padding: 6px 16px;
+            background: #2874f0;
+            color: #fff;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-track:hover {
+            background: #1a5bc7;
         }
 
         /* ---------- Order Card ---------- */
@@ -678,7 +692,7 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
             <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo htmlspecialchars($user['name'] ?? 'User'); ?></a>
             <a href="wishlist.php"><i class="fa-regular fa-heart"></i> Wishlist <span class="badge"><?php echo $wishlist_count; ?></span></a>
             <a href="cart.php"><i class="fa-solid fa-cart-shopping"></i> Cart <span class="badge"><?php echo $cart_count; ?></span></a>
-            <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+            
         </div>
     </header>
 
@@ -749,8 +763,8 @@ $wishlist_count = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 
                             <a href="order-detail.php?id=<?php echo $order['id']; ?>" class="btn-view">
                                 <i class="fa-regular fa-eye"></i> View Details
                             </a>
-                            <a href="order-tracking.php?id=<?php echo $order['id']; ?>" class="btn-track" style="color:#2874f0;">
-                                <i class="fa-solid fa-location-dot"></i> Track Order
+                            <a href="track-order.php?id=<?php echo $order['id']; ?>" class="btn-track">
+                                <i class="fa-solid fa-truck"></i> Track Order
                             </a>
                             <?php if ($order['status'] == 'pending' || $order['status'] == 'confirmed'): ?>
                                 <a href="cancel-order.php?id=<?php echo $order['id']; ?>" class="btn-cancel" onclick="return confirm('Cancel this order?')">

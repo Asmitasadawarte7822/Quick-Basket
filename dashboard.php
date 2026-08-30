@@ -686,7 +686,7 @@ mysqli_close($conn);
         <a href="deals.php"><i class="fa-solid fa-fire"></i> Best Deals</a>
         <a href="categories.php"><i class="fa-regular fa-folder-open"></i> Categories</a> -->
         <a href="cart.php"><i class="fa-solid fa-cart-shopping"></i> Cart <span class="badge"><?php echo $cart_count; ?></span></a>
-        <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+        
     </div>
 </header>
 

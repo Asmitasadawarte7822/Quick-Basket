@@ -1,262 +1,484 @@
 <?php
-// ============================================================
-// 1. DATABASE CONFIGURATION - CHANGE THESE TO YOUR OWN!
-// ============================================================
-$host = 'localhost';
-$dbname = 'quick_basket';   // Your database name
-$user = 'root';             // Your DB username
-$pass = '';                 // Your DB password (default is empty for XAMPP)
+session_start();
+require_once '../config.php';
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("❌ Database connection failed: " . $e->getMessage());
+// ---------- CHECK ADMIN LOGIN ----------
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// ============================================================
-// 2. HANDLE FORM SUBMISSION (UPDATE ORDER)
-// ============================================================
 $message = '';
-$messageType = '';
+$message_type = '';
 
+// ---------- UPDATE ORDER STATUS ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_order'])) {
-    $id        = filter_input(INPUT_POST, 'order_id', FILTER_VALIDATE_INT);
-    $full_name = trim($_POST['full_name'] ?? '');
-    $phone     = trim($_POST['phone'] ?? '');
-    $address   = trim($_POST['address'] ?? '');
-    $city      = trim($_POST['city'] ?? '');
-    $state     = trim($_POST['state'] ?? '');
-    $pincode   = trim($_POST['pincode'] ?? '');
-    $status    = trim($_POST['status'] ?? '');
+    $order_id = intval($_POST['order_id']);
+    $new_status = mysqli_real_escape_string($conn, $_POST['status']);
+    $note = mysqli_real_escape_string($conn, $_POST['note'] ?? '');
 
-    if (!$id || $id <= 0) {
-        $message = "Invalid Order ID.";
-        $messageType = "error";
+    // Check if status is valid
+    $valid_statuses = ['pending', 'confirmed', 'processing', 'shipped', 'ontheway', 'delivered', 'cancelled', 'refunded'];
+    if (!in_array($new_status, $valid_statuses)) {
+        $message = 'Invalid status.';
+        $message_type = 'error';
     } else {
-        try {
-            // Update query - adjust column names to match your actual table!
-            $sql = "UPDATE orders 
-                    SET full_name = :full_name,
-                        phone = :phone,
-                        address = :address,
-                        city = :city,
-                        state = :state,
-                        pincode = :pincode,
-                        status = :status
-                    WHERE id = :id";
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':full_name' => $full_name,
-                ':phone'     => $phone,
-                ':address'   => $address,
-                ':city'      => $city,
-                ':state'     => $state,
-                ':pincode'   => $pincode,
-                ':status'    => $status,
-                ':id'        => $id
-            ]);
-
-            if ($stmt->rowCount() > 0) {
-                $message = "✅ Order #$id updated successfully!";
-                $messageType = "success";
-            } else {
-                $message = "ℹ️ No changes were made to Order #$id.";
-                $messageType = "info";
+        // Update order status
+        $update_sql = "UPDATE orders SET status = ? WHERE id = ?";
+        $update_stmt = mysqli_prepare($conn, $update_sql);
+        mysqli_stmt_bind_param($update_stmt, "si", $new_status, $order_id);
+        if (mysqli_stmt_execute($update_stmt)) {
+            // Add to history if table exists
+            $check_table = "SHOW TABLES LIKE 'order_status_history'";
+            $table_check = mysqli_query($conn, $check_table);
+            if (mysqli_num_rows($table_check) > 0) {
+                $history_sql = "INSERT INTO order_status_history (order_id, status, note) VALUES (?, ?, ?)";
+                $history_stmt = mysqli_prepare($conn, $history_sql);
+                mysqli_stmt_bind_param($history_stmt, "iss", $order_id, $new_status, $note);
+                mysqli_stmt_execute($history_stmt);
+                mysqli_stmt_close($history_stmt);
             }
-        } catch (PDOException $e) {
-            $message = "❌ Update failed: " . $e->getMessage();
-            $messageType = "error";
+            $message = 'Order status updated successfully.';
+            $message_type = 'success';
+        } else {
+            $message = 'Error updating order: ' . mysqli_error($conn);
+            $message_type = 'error';
         }
+        mysqli_stmt_close($update_stmt);
     }
 }
 
-// ============================================================
-// 3. FETCH ORDER DATA (for editing)
-// ============================================================
-$order = null;
-$orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+// ---------- FETCH ALL ORDERS WITH USER INFO ----------
+$orders_sql = "SELECT o.*, u.name AS customer_name, u.email AS customer_email 
+               FROM orders o 
+               LEFT JOIN users u ON o.user_id = u.id 
+               ORDER BY o.id DESC";
+$orders_result = mysqli_query($conn, $orders_sql);
 
-if ($orderId > 0) {
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = :id");
-        $stmt->execute([':id' => $orderId]);
-        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+// ---------- STATUS CONFIG ----------
+$status_colors = [
+    'pending' => '#f39c12',
+    'confirmed' => '#3498db',
+    'processing' => '#9b59b6',
+    'shipped' => '#1abc9c',
+    'ontheway' => '#2ecc71',
+    'delivered' => '#27ae60',
+    'cancelled' => '#e74c3c',
+    'refunded' => '#95a5a6'
+];
 
-        if (!$order) {
-            $message = "⚠️ Order #$orderId not found.";
-            $messageType = "error";
-            $orderId = 0;
-        }
-    } catch (PDOException $e) {
-        die("❌ Error fetching order: " . $e->getMessage());
-    }
-}
+$status_labels = [
+    'pending' => 'Pending',
+    'confirmed' => 'Confirmed',
+    'processing' => 'Processing',
+    'shipped' => 'Shipped',
+    'ontheway' => 'On The Way',
+    'delivered' => 'Delivered',
+    'cancelled' => 'Cancelled',
+    'refunded' => 'Refunded'
+];
 
-// ============================================================
-// 4. FETCH ALL ORDERS (for the list view)
-// ============================================================
-try {
-    $allOrders = $pdo->query("SELECT id, full_name, phone, total, status, created_at FROM orders ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $allOrders = [];
-}
+mysqli_close($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quick Basket - Update Order</title>
+    <title>Update Orders – Quick Basket Admin</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #f4f7fa; padding: 30px; margin: 0; }
-        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        h1, h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .message { padding: 12px 18px; border-radius: 6px; margin: 15px 0; font-weight: 500; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th { background: #2c3e50; color: #fff; padding: 12px; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #ddd; }
-        tr:hover { background: #f8f9fa; }
-        .btn { display: inline-block; padding: 8px 16px; border-radius: 5px; text-decoration: none; color: #fff; font-weight: 600; border: none; cursor: pointer; }
-        .btn-edit { background: #3498db; }
-        .btn-edit:hover { background: #2176ae; }
-        .btn-update { background: #27ae60; padding: 12px 28px; font-size: 16px; }
-        .btn-update:hover { background: #1e8449; }
-        .btn-back { background: #95a5a6; }
-        .btn-back:hover { background: #7f8c8d; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: inline-block; width: 140px; font-weight: 600; color: #2c3e50; }
-        .form-group input, .form-group select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; width: 300px; max-width: 100%; }
-        .form-row { display: flex; flex-wrap: wrap; gap: 10px; }
-        .form-row .form-group { flex: 1 1 45%; }
-        .form-actions { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
-        .order-summary-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3498db; }
-        .order-summary-box strong { display: inline-block; width: 120px; }
-        .no-orders { text-align: center; padding: 40px; color: #7f8c8d; }
+        /* ============================================
+           ADMIN ORDER UPDATE – WHITE/BLUE/YELLOW
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background: #f1f3f6;
+            color: #222;
+        }
+
+        .admin-wrap {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .admin-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px 35px;
+            border: 1px solid #e5e5e5;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .admin-card .page-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 4px;
+        }
+
+        .admin-card .page-title span {
+            color: #2874f0;
+        }
+
+        .admin-card .page-subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        /* ---------- ALERT ---------- */
+        .alert {
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .alert-success {
+            background: #d5f5e3;
+            color: #1a7a3a;
+            border: 1px solid #a9dfbf;
+        }
+        .alert-error {
+            background: #fde2e2;
+            color: #991b1b;
+            border: 1px solid #f5c6c6;
+        }
+
+        /* ---------- TABLE ---------- */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        table thead {
+            background: #f8f9fa;
+        }
+
+        table th {
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e5e5e5;
+        }
+
+        table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e5e5;
+            vertical-align: middle;
+        }
+
+        table tr:hover {
+            background: #fafcff;
+        }
+
+        .order-id {
+            font-weight: 700;
+            color: #2874f0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 50px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: capitalize;
+        }
+
+        /* ---------- FORM INLINE ---------- */
+        .status-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-form select {
+            padding: 6px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .status-form select:focus {
+            border-color: #2874f0;
+            outline: none;
+        }
+
+        .status-form input[type="text"] {
+            padding: 6px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 120px;
+        }
+
+        .status-form input[type="text"]:focus {
+            border-color: #2874f0;
+            outline: none;
+        }
+
+        .btn-update {
+            padding: 6px 18px;
+            background: #2874f0;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 13px;
+        }
+
+        .btn-update:hover {
+            background: #1a5bc7;
+        }
+
+        .btn-update:disabled {
+            background: #e5e5e5;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .btn-view {
+            padding: 4px 12px;
+            background: #f8f9fa;
+            color: #2874f0;
+            border: 1px solid #2874f0;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            transition: 0.3s;
+            display: inline-block;
+        }
+
+        .btn-view:hover {
+            background: #2874f0;
+            color: #fff;
+        }
+
+        /* ---------- EMPTY STATE ---------- */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            color: #ddd;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .empty-state h3 {
+            color: #222;
+            margin-bottom: 6px;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
         @media (max-width: 768px) {
-            .form-group label { display: block; width: 100%; margin-bottom: 4px; }
-            .form-group input, .form-group select { width: 100%; }
+            .admin-card {
+                padding: 20px;
+            }
+
+            .status-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .status-form select,
+            .status-form input[type="text"],
+            .btn-update {
+                width: 100%;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            table th,
+            table td {
+                padding: 8px 10px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .admin-card {
+                padding: 15px;
+            }
+
+            .page-title {
+                font-size: 22px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<!-- ======== HEADER ======== -->
+<header class="top-header">
+    <div class="logo">
+        <h1>Quick<span>Basket</span></h1>
+    </div>
+    <div class="search-box">
+        <input type="text" placeholder="Search for Products, Brands and More...">
+        <button>SEARCH</button>
+    </div>
+    <div class="header-icons">
+        <a href="dashboard.php"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+        <a href="products.php"><i class="fa-solid fa-box"></i> Products</a>
+        <!-- <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a> -->
+    </div>
+</header>
 
-    <h1>📦 Quick Basket - Update Order</h1>
+<!-- ======== CATEGORY NAV ======== -->
+<nav class="category-bar">
+    <div class="category-bar-inner">
+        <a href="dashboard.php"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+        <a href="products.php"><i class="fa-solid fa-box"></i> Products</a>
+        <a href="add-product.php"><i class="fa-solid fa-plus"></i> Add Product</a>
+        <a href="orders.php" class="active"><i class="fa-solid fa-truck"></i> Orders</a>
+        <a href="update-order.php"><i class="fa-solid fa-pen-to-square"></i> Update Order</a>
+        <a href="categories.php"><i class="fa-solid fa-tags"></i> Categories</a>
+        <a href="sellers.php"><i class="fa-solid fa-store"></i> Sellers</a>
+    </div>
+</nav>
 
-    <?php if ($message): ?>
-        <div class="message <?= htmlspecialchars($messageType) ?>">
-            <?= htmlspecialchars($message) ?>
-        </div>
-    <?php endif; ?>
+<!-- ======== MAIN CONTENT ======== -->
+<div class="admin-wrap">
+    <div class="admin-card">
 
-    <?php if ($orderId > 0 && $order): ?>
-        <!-- ========================== EDIT FORM ========================== -->
-        <h2>✏️ Edit Order #<?= htmlspecialchars($order['id']) ?></h2>
+        <h1 class="page-title"><i class="fa-regular fa-pen-to-square" style="color:#2874f0;"></i> Update <span>Order Status</span></h1>
+        <p class="page-subtitle">View all orders and change their status. Add notes for tracking history.</p>
 
-        <div class="order-summary-box">
-            <strong>Current Total:</strong> ₹<?= number_format($order['total'] ?? 0, 2) ?><br>
-            <strong>Placed On:</strong> <?= htmlspecialchars($order['created_at'] ?? 'N/A') ?><br>
-            <strong>Payment:</strong> <?= htmlspecialchars($order['payment_method'] ?? 'N/A') ?>
-        </div>
-
-        <form method="post" action="">
-            <input type="hidden" name="order_id" value="<?= htmlspecialchars($order['id']) ?>">
-
-            <div class="form-group">
-                <label for="full_name">Full Name</label>
-                <input type="text" id="full_name" name="full_name" value="<?= htmlspecialchars($order['full_name'] ?? '') ?>" required>
-            </div>
-
-            <div class="form-group">
-                <label for="phone">Phone</label>
-                <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($order['phone'] ?? '') ?>" required>
-            </div>
-
-            <div class="form-group">
-                <label for="address">Address</label>
-                <input type="text" id="address" name="address" value="<?= htmlspecialchars($order['address'] ?? '') ?>" required>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="city">City</label>
-                    <input type="text" id="city" name="city" value="<?= htmlspecialchars($order['city'] ?? '') ?>">
-                </div>
-                <div class="form-group">
-                    <label for="state">State</label>
-                    <input type="text" id="state" name="state" value="<?= htmlspecialchars($order['state'] ?? '') ?>">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="pincode">Pincode</label>
-                <input type="text" id="pincode" name="pincode" value="<?= htmlspecialchars($order['pincode'] ?? '') ?>">
-            </div>
-
-            <div class="form-group">
-                <label for="status">Order Status</label>
-                <select id="status" name="status">
-                    <option value="Pending" <?= ($order['status'] ?? '') == 'Pending' ? 'selected' : '' ?>>Pending</option>
-                    <option value="Processing" <?= ($order['status'] ?? '') == 'Processing' ? 'selected' : '' ?>>Processing</option>
-                    <option value="Shipped" <?= ($order['status'] ?? '') == 'Shipped' ? 'selected' : '' ?>>Shipped</option>
-                    <option value="Delivered" <?= ($order['status'] ?? '') == 'Delivered' ? 'selected' : '' ?>>Delivered</option>
-                    <option value="Cancelled" <?= ($order['status'] ?? '') == 'Cancelled' ? 'selected' : '' ?>>Cancelled</option>
-                </select>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" name="update_order" class="btn btn-update">💾 Update Order</button>
-                <a href="update-order.php" class="btn btn-back">⬅ Back to Order List</a>
-            </div>
-        </form>
-
-    <?php else: ?>
-        <!-- ========================== ORDER LIST ========================== -->
-        <h2>📋 All Orders</h2>
-        <?php if (count($allOrders) > 0): ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Phone</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Placed On</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($allOrders as $o): ?>
-                        <tr>
-                            <td><strong>#<?= htmlspecialchars($o['id']) ?></strong></td>
-                            <td><?= htmlspecialchars($o['full_name'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($o['phone'] ?? 'N/A') ?></td>
-                            <td>₹<?= number_format($o['total'] ?? 0, 2) ?></td>
-                            <td><span style="background: <?= ($o['status'] == 'Delivered' ? '#27ae60' : ($o['status'] == 'Cancelled' ? '#e74c3c' : '#f39c12')); ?>; color:#fff; padding:3px 10px; border-radius:20px; font-size:12px;"><?= htmlspecialchars($o['status'] ?? 'Pending') ?></span></td>
-                            <td><?= date('d M Y, h:i A', strtotime($o['created_at'] ?? 'now')) ?></td>
-                            <td>
-                                <a href="update-order.php?id=<?= $o['id'] ?>" class="btn btn-edit">✏️ Edit</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <div class="no-orders">
-                <p>🚫 No orders found in the database.</p>
+        <?php if ($message): ?>
+            <div class="alert alert-<?php echo $message_type; ?>">
+                <i class="fa-solid <?php echo ($message_type == 'success') ? 'fa-check-circle' : 'fa-exclamation-circle'; ?>"></i>
+                <?php echo $message; ?>
             </div>
         <?php endif; ?>
-    <?php endif; ?>
 
+        <?php if (mysqli_num_rows($orders_result) > 0): ?>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Note</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($order = mysqli_fetch_assoc($orders_result)): 
+                            $order_number = str_pad($order['id'], 6, '0', STR_PAD_LEFT);
+                            $status = $order['status'];
+                            $status_color = $status_colors[$status] ?? '#888';
+                        ?>
+                        <tr>
+                            <td><span class="order-id">#<?php echo $order_number; ?></span></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($order['customer_name'] ?? 'Guest'); ?></strong>
+                                <br><small style="color:#888;"><?php echo htmlspecialchars($order['customer_email'] ?? ''); ?></small>
+                            </td>
+                            <td>₹<?php echo number_format($order['total_amount'], 2); ?></td>
+                            <td><?php echo date('d M Y, h:i A', strtotime($order['order_date'])); ?></td>
+                            <td>
+                                <span class="status-badge" style="background:<?php echo $status_color; ?>;">
+                                    <?php echo $status_labels[$status] ?? ucfirst($status); ?>
+                                </span>
+                            </td>
+                            <form method="POST" action="">
+                                <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                <td>
+                                    <input type="text" name="note" placeholder="Add note..." style="width:100%;">
+                                </td>
+                                <td>
+                                    <div class="status-form">
+                                        <select name="status">
+                                            <?php foreach ($status_labels as $key => $label): ?>
+                                                <option value="<?php echo $key; ?>" <?php echo ($key == $status) ? 'selected' : ''; ?>>
+                                                    <?php echo $label; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <button type="submit" name="update_order" class="btn-update">
+                                            <i class="fa-solid fa-check"></i> Update
+                                        </button>
+                                        <a href="../track-order.php?id=<?php echo $order['id']; ?>" target="_blank" class="btn-view">
+                                            <i class="fa-regular fa-eye"></i> View
+                                        </a>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fa-regular fa-receipt"></i>
+                <h3>No orders found</h3>
+                <p>There are no orders in the database yet.</p>
+            </div>
+        <?php endif; ?>
+
+    </div>
 </div>
+
+<!-- ======== FOOTER ======== -->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-box">
+            <h3>Quick Basket</h3>
+            <p>Admin panel for order management.</p>
+        </div>
+        <div class="footer-box">
+            <h3>Quick Links</h3>
+            <ul>
+                <li><a href="dashboard.php">Dashboard</a></li>
+                <li><a href="products.php">Products</a></li>
+                <li><a href="orders.php">Orders</a></li>
+            </ul>
+        </div>
+        <div class="footer-box">
+            <h3>Support</h3>
+            <ul>
+                <li><a href="#">Contact</a></li>
+                <li><a href="#">FAQ</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>© 2026 Quick Basket. All Rights Reserved.</p>
+    </div>
+</footer>
 
 </body>
 </html>

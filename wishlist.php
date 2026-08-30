@@ -566,7 +566,7 @@ mysqli_close($conn);
         <a href="dashboard.php"><i class="fa-regular fa-user"></i> <?php echo htmlspecialchars($user_name ?? 'User'); ?></a>
         <a href="wishlist.php" style="color:#ffd700;"><i class="fa-regular fa-heart"></i> Wishlist <span class="badge"><?php echo $wishlist_count; ?></span></a>
         <a href="cart.php"><i class="fa-solid fa-cart-shopping"></i> Cart <span class="badge"><?php echo $cart_count; ?></span></a>
-        <a href="logout.php" style="color:#ffd700;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+       
     </div>
 </header>
 
