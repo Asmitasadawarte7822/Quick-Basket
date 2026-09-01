@@ -392,7 +392,7 @@ mysqli_close($conn);
                 <p>Up To 40% OFF</p>
                 <a href="deals.php?category=mobiles">Shop Now</a>
             </div>
-            <img src=images/mobile phone.jpg alt="Mobile">
+            <img src=images/mobile.jpg alt="Mobile">
         </div>
         <div class="deal-card deal-orange">
             <div class="deal-content">
